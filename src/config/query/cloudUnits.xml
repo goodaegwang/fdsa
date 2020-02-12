@@ -1,0 +1,170 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cloudUnits">
+    <select id="getCloudUnitList">
+        <bind name="searchText" value="'%' + searchText + '%'"/>
+        select
+        (
+        select
+        count(*)
+        from
+        iot_cloud_units
+        where
+        cloud_device_id = UNHEX(#{cloudDeviceId})
+        <if test="searchText and searchText != ''">
+            and
+            (
+            name LIKE #{searchText}
+            or
+            number LIKE #{searchText}
+            )
+        </if>
+        ) as cnt,
+        HEX(cloud_device_id) as cloud_device_id,
+        number,
+        name,
+        command_type,
+        data_property_group,
+        type,
+        measure,
+        description,
+        DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at
+        from
+        iot_cloud_units
+        where
+        cloud_device_id = UNHEX(#{cloudDeviceId})
+        <if test="searchText and searchText != ''">
+            and
+            (
+            name LIKE #{searchText}
+            or
+            number LIKE #{searchText}
+            )
+        </if>
+        order by
+        <choose>
+            <when test="orderColumn == 'number' and orderMethod == 'asc'">
+                number asc
+            </when>
+            <when test="orderColumn == 'number' and orderMethod == 'desc'">
+                number desc
+            </when>
+            <when test="orderColumn == 'name' and orderMethod == 'asc'">
+                name asc
+            </when>
+            <when test="orderColumn == 'name' and orderMethod == 'desc'">
+                name desc
+            </when>
+            <otherwise>
+                number asc
+            </otherwise>
+        </choose>
+        limit ${limit}
+        offset ${offset}
+    </select>
+    <insert id="addUnits">
+        insert
+        into
+        iot_cloud_units
+        (
+        cloud_device_id,
+        number,
+        name,
+        data_property_group,
+        type,
+        measure,
+        description,
+        command_type,
+        owner_id
+        )
+        values
+        <foreach collection="units" item="unit" separator=",">
+            (
+            UNHEX(#{unit.cloudDeviceId}),
+            #{unit.number},
+            #{unit.name},
+            #{unit.dataPropertyGroupCode},
+            #{unit.dataPropertyCode},
+            <choose>
+                <when test="unit.measure and unit.measure != ''">
+                    #{unit.measure},
+                </when>
+                <otherwise>
+                    null,
+                </otherwise>
+            </choose>
+            <choose>
+                <when test="unit.description and unit.description != ''">
+                    #{unit.description},
+                </when>
+                <otherwise>
+                    null,
+                </otherwise>
+            </choose>
+            #{unit.commandType},
+            #{unit.ownerId}
+            )
+        </foreach>
+    </insert>
+    <select id="getCloudUnit">
+        select
+        HEX(cloud_device_id) as cloud_device_id,
+        number,
+        name,
+        command_type,
+        data_property_group,
+        type,
+        measure,
+        description,
+        DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at
+        from
+        iot_cloud_units
+        where
+        cloud_device_id = UNHEX(#{cloudDeviceId})
+        and
+        number = #{number}
+    </select>
+    <update id="updateUnit">
+        update
+        iot_cloud_units
+        set
+        name = #{name},
+        data_property_group = #{dataPropertyGroupCode},
+        type = #{dataPropertyCode},
+        <if test="measure and measure != ''">
+            measure = #{measure},
+        </if>
+        <if test="description and description != ''">
+            description = #{description},
+        </if>
+        command_type = #{commandType},
+        updated_at = NOW()
+        where
+        cloud_device_id = UNHEX(#{cloudDeviceId})
+        and
+        number = #{number}
+    </update>
+    <delete id="deleteUnits">
+        delete
+        from
+        iot_cloud_units
+        where
+        cloud_device_id = UNHEX(#{cloudDeviceId})
+        and
+        number
+        in
+        (
+        <foreach collection="unitNumbers" item="number" separator=",">
+            #{number}
+        </foreach>
+        )
+    </delete>
+    <delete id="deleteAllUnits">
+        delete
+        from
+            iot_cloud_units
+        where
+            cloud_device_id = UNHEX(#{cloudDeviceId})
+    </delete>
+</mapper>

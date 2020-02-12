@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="devices">
+    <select id="getDeviceList">
+        select
+        (select count(*)
+        from iot_devices
+        where link_id = UNHEX(#{linkId})) as cnt,
+        HEX(c.id) as id,
+        c.name,
+        HEX(c.cloud_device_id) as cloud_device_id,
+        c.identifier,
+        cc.product_name,
+        cc.model_name,
+        cc.manufacturer,
+        cc.device_type,
+        cc.product_image_path,
+        cc.mime_type,
+        HEX(c.service_id) as service_id,
+        HEX(c.link_id) as link_id,
+        (select COUNT(*) from iot_cloud_units U where U.cloud_device_id = c.cloud_device_id) as units_length,
+        DATE_FORMAT(CONVERT_TZ(c.created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at,
+        DATE_FORMAT(CONVERT_TZ(c.updated_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as updated_at        
+        from iot_devices c, iot_cloud_devices cc
+        where
+        c.link_id = UNHEX(#{linkId})
+        and
+        c.cloud_device_id = cc.id
+        order by
+        c.created_at desc
+        limit ${limit}
+        offset ${offset}
+    </select>
+    <insert id="addDevice">
+        insert into
+        iot_devices (
+        id,
+        name,
+        cloud_device_id,
+        <if test="identifier and identifier=''">
+        identifier,
+        </if>
+        service_id,
+        link_id,
+        created_at,
+        updated_at
+        ) values (
+        UNHEX(#{id}),
+        #{name},
+        UNHEX(#{cloudDeviceId}),
+        <if test="identifier and identifier=''">
+        #{identifier},
+        </if>
+        UNHEX(#{serviceId}),
+        UNHEX(#{linkId}),
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+        )
+    </insert>
+    <select id="getDevice">
+        select
+        HEX(id) as id,
+        name,
+        HEX(cloud_device_id) as cloud_device_id,
+        identifier,
+        HEX(service_id) as service_id,
+        HEX(link_id) as link_id,
+        DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at,
+        DATE_FORMAT(CONVERT_TZ(updated_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as updated_at
+        from iot_devices
+        where
+        id = UNHEX(#{id})
+    </select>
+    <select id="getDeviceForControl">
+        select
+        c.name as device_name,
+        s.code as service_code,
+        l.identifier,
+        l.type
+        from
+        iot_devices c, iot_links l, iot_services s
+        where
+        c.id = UNHEX(#{deviceId})
+        and
+        c.link_id = l.id
+        and
+        l.service_id = s.id
+    </select>
+    <update id="updateDevice">
+        update
+        iot_devices
+        set
+        name = #{name},
+        <if test="identifier and identifier != ''">
+        identifier = #{identifier},
+        </if>
+        updated_at = NOW()
+        where
+        id = UNHEX(#{id})
+    </update>
+    <delete id="deleteElementWithDevice">
+        delete from
+        fms_scenes_elements
+        where
+        device_id = UNHEX(#{id})
+    </delete>
+    <delete id="deleteDevice">
+        delete from
+        iot_devices
+        where
+        id = UNHEX(#{id})
+    </delete>
+</mapper>

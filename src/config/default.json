@@ -1,0 +1,75 @@
+{
+    "server": {
+        "port": 9000,
+        "timeout_delay": 15000,
+        "logCategory": "development",
+        "userDataDir": "/../nubison_user_data",
+        "uploadsDir": "/v2/uploads/"
+    },
+    "driverServer": {
+        "baseURL": "https://linkhub.nubisoniot.com/v2",
+        "timeout": 5000
+    },
+    "mysql": {
+        "connectionLimit": 10,
+        "host": "dev.nubisoniot.com",
+        "port": 3306,
+        "user": "simplatform",
+        "password": "Simplatform!@3",
+        "database": "iot_cloud_dev",
+        "multipleStatements": true
+    },
+    "mongo": {
+        "server": "dev.nubisoniot.com",
+        "port": 27017,
+        "dbname": "nubisonCloudDev",
+        "user": "simplatform",
+        "password": "simplatform!@3",
+        "poolSize": 10,
+        "options": {
+            "auto_reconnect": true,
+            "authSource": "nubisonCloudDev",
+            "auth": {
+                "user": "simplatform",
+                "password": "simplatform!@3"
+            },
+            "authMechanism": "SCRAM-SHA-1",
+            "useNewUrlParser": true
+        }
+    },
+    "web_token": {
+        "sign": {
+            "secret_key": "simplatform!@3",
+            "options": {
+                "expiresIn": "86400000"
+            }
+        },
+        "verify": {
+            "secret_key": "simplatform!@3",
+            "options": {
+                "maxAge": "86400000"
+            }
+        }
+    },
+    "cipher": {
+        "use": false,
+        "pass_phrase": "simplatform",
+        "iv_length": 16
+    },
+    "sentry": {
+        "dsn": "http://8f7d1a419faa4ecf926ef8af7e6234b7@35.200.79.32:9000/4"
+    },
+    "test": {
+        "auth": {
+            "requestHeader": {
+                "client_id": "Nx0ZdJNnPsxIIJGbxxoF",
+                "client_secret": "zmNGjaYPicyHyxBlGdB9"
+            },
+            "requestParam": {
+                "grant_type": "password",
+                "username": "maengje@simplatform.com",
+                "password": "03AC674216F3E15C761EE1A5E255F067953623C8B388B4459E13F978D7C846F4"
+            }
+        }
+    }
+}

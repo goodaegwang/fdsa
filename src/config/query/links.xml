@@ -1,0 +1,266 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="links">
+    <select id="getLinkList">
+        select (select count(*) from iot_links where service_id = UNHEX(#{serviceId})) as cnt,
+               HEX(id)                                                                 as id,
+               name,
+               type,
+               protocol,
+               identification_policy,
+               identifier,
+               sync_status,
+               DATE_FORMAT(created_at, '%Y-%m-%dT%TZ')                                 as created_at
+        from iot_links
+        where service_id = UNHEX(#{serviceId})
+          and owner_id = #{ownerId}
+          and use_status = 1
+        order by created_at desc
+        limit ${limit}
+            offset ${offset}
+    </select>
+    <select id="getLinkListWithType">
+        select (
+                   select count(*)
+                   from iot_links
+                   where service_id = UNHEX(#{serviceId})
+                     and owner_id = #{ownerId}
+                     and type = #{type}
+               )                                                                                  as cnt,
+               HEX(id)                                                                            as id,
+               name,
+               type,
+               protocol,
+               identification_policy,
+               identifier,
+               sync_status,
+               DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at
+        from iot_links
+        where service_id = UNHEX(#{serviceId})
+          and owner_id = #{ownerId}
+          and type = #{type}
+          and use_status = 1
+        order by created_at desc
+        limit ${limit}
+            offset ${offset}
+    </select>
+    <select id="getLinkListWithSearchText">
+        select (
+                   select count(*)
+                   from iot_links
+                   where service_id = UNHEX(#{serviceId})
+                     and owner_id = #{ownerId}
+                     and (name LIKE #{searchText} or identifier LIKE #{searchText})
+               )                                                                                  as cnt,
+               HEX(id)                                                                            as id,
+               name,
+               type,
+               protocol,
+               identification_policy,
+               identifier,
+               sync_status,
+               DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at
+        from iot_links
+        where service_id = UNHEX(#{serviceId})
+          and owner_id = #{ownerId}
+          and (name LIKE #{searchText} or identifier LIKE #{searchText})
+          and use_status = 1
+        order by created_at desc
+        limit ${limit}
+            offset ${offset}
+    </select>
+    <select id="getLinkListWithTypeAndSearchText">
+        select (
+                   select count(*)
+                   from iot_links
+                   where service_id = UNHEX(#{serviceId})
+                     and owner_id = #{ownerId}
+                     and type = #{type}
+                     and (name LIKE #{searchText} or identifier LIKE #{searchText})
+               )                                                                                  as cnt,
+               HEX(id)                                                                            as id,
+               name,
+               type,
+               protocol,
+               identification_policy,
+               identifier,
+               sync_status,
+               DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at
+        from iot_links
+        where service_id = UNHEX(#{serviceId})
+          and owner_id = #{ownerId}
+          and type = #{type}
+          and (name LIKE #{searchText} or identifier LIKE #{searchText})
+          and use_status = 1
+        order by created_at desc
+        limit ${limit}
+            offset ${offset}
+    </select>
+    <select id="getLink">
+        select HEX(id)                                                                            as id,
+               name,
+               type,
+               protocol,
+               identification_policy,
+               identifier,
+               sync_status,
+               HEX(service_id)                                                                    as service_id,
+               DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at
+        from iot_links
+        where id = UNHEX(#{id})
+          and owner_id = #{ownerId}
+          and use_status = 1
+    </select>
+    <select id="getLinkFromDevice">
+        select HEX(l.id) as id
+        from iot_links l,
+             iot_services s
+        where l.service_id = s.id
+          and l.identifier = #{identifier}
+          and s.code = #{serviceCode}
+          and l.use_status = 1
+    </select>
+    <select id="getLinkForControl">
+        select s.code as service_code,
+               l.identifier,
+               l.type,
+               l.protocol
+        from iot_devices c,
+             iot_links l,
+             iot_services s
+        where c.id = UNHEX(#{deviceId})
+          and c.link_id = l.id
+          and l.service_id = s.id
+          and l.use_status = 1
+    </select>
+    <select id="getLinkForIdentifier">
+        select s.code as service_code,
+               l.identifier,
+               l.type,
+               l.protocol
+        from iot_links l,
+             iot_services s
+        where l.id = UNHEX(#{id})
+          and l.service_id = s.id
+          and l.use_status = 1
+    </select>
+    <select id="getLinkIdFromDevice">
+        select HEX(l.id) as id
+        from iot_links l,
+             iot_devices c
+        where l.id = c.link_id
+          and c.id = UNHEX(#{id})
+          and l.use_status = 1
+    </select>
+    <insert id="addLink">
+        insert into
+        iot_links (
+        id,
+        name,
+        type,
+        protocol,
+        identification_policy,
+        identifier,
+        service_id,
+        owner_id,
+        user_id,
+        <if test="syncStatus">
+            sync_status,
+        </if>
+        created_at,
+        updated_at
+        ) values (
+        UNHEX(#{id}),
+        #{name},
+        #{type},
+        #{protocol},
+        #{identificationPolicy},
+        #{identifier},
+        UNHEX(#{serviceId}),
+        #{ownerId},
+        #{userId},
+        <if test="syncStatus">
+            #{syncStatus},
+        </if>
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+        )
+    </insert>
+    <insert id="addLinkLocation">
+        insert into
+        iot_links_location (
+        link_id,
+        <if test="name">
+            name,
+        </if>
+        address,
+        service_id,
+        created_at,
+        updated_at
+        ) values (
+        UNHEX(#{linkId}),
+        <if test="name">
+            #{name},
+        </if>
+        #{address},
+        UNHEX(#{serviceId}),
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+        )
+    </insert>
+    <update id="updateLink">
+        update
+            iot_links
+        set name       = #{name},
+            updated_at = NOW()
+        where id = UNHEX(#{id})
+          and owner_id = #{ownerId}
+    </update>
+    <delete id="deleteLink">
+        delete
+        from iot_links
+        where id = UNHEX(#{id})
+          and owner_id = #{ownerId}
+    </delete>
+    <delete id="deleteDeviceWithLinkId">
+        delete
+        from iot_devices
+        where link_id = UNHEX(#{id})
+    </delete>
+    <delete id="deleteLocationWithLinkId">
+        delete
+        from iot_links_location
+        where link_id = UNHEX(#{id})
+    </delete>
+    <update id="updateSyncStatus">
+        update
+            iot_links
+        set sync_status = #{syncStatus},
+            updated_at  = NOW()
+        where id = UNHEX(#{linkId})
+    </update>
+    <select id="isIdentifierDuplicated">
+        select true
+        from iot_links
+        where service_id = UNHEX(#{serviceId})
+          and use_status = '1'
+          and identifier = #{identifier};
+    </select>
+    <select id="getLinkInfoForDriverServer">
+        select hex(d.id)  as device_id,
+               hex(cd.id) as cloud_device_id,
+               s.code     as service_code,
+               l.type,
+               l.identifier
+        from iot_links l,
+             iot_devices d,
+             iot_cloud_devices cd,
+             iot_services s
+        where d.link_id = l.id
+          and d.cloud_device_id = cd.id
+          and l.service_id = s.id
+          and l.id = unhex(#{id})
+          and l.use_status = 1
+    </select>
+</mapper>

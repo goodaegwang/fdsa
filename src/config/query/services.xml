@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="services">
+    <select id="getServiceList">
+        select
+        (select count(*) from service_view where user_id = #{userId}) as cnt,
+        hex(id) as id,
+        name,
+        code,
+        summary,
+        additional_functions,
+        image_path,
+        color_logo_path,
+        white_logo_path,
+        identity_color,
+        login_template_type,
+        app_key,
+        user_id,
+        owner_id,
+        (select name from users where id = owner_id) as owner_name,
+        status,
+        DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at,
+        DATE_FORMAT(CONVERT_TZ(updated_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as updated_at
+        from service_view
+        where user_id = #{userId}
+        and status != '9'
+        order by created_at DESC
+        limit ${limit}
+        offset ${offset}
+    </select>
+    <select id="getService">
+        select
+        hex(id) as id,
+        name,
+        code,
+        summary,
+        additional_functions,
+        image_path,
+        color_logo_path,
+        white_logo_path,
+        identity_color,
+        login_template_type,
+        app_key,
+        owner_id,
+        DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at,
+        DATE_FORMAT(CONVERT_TZ(updated_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as updated_at
+        from service_view
+        where
+        id = UNHEX(#{id})
+        and
+        user_id = #{userId}
+    </select>
+    <select id="isExistService">
+        select
+        hex(id) as id
+        from iot_services
+        where
+        id = UNHEX(#{id})
+    </select>
+</mapper>

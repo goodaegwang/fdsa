@@ -1,0 +1,325 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="cloudDevices">
+    <select id="getCloudDeviceList">
+        <bind name="text" value="'%' + searchText + '%'"/>
+        select
+        (
+        select
+        count(*)
+        from
+        iot_cloud_devices
+        where
+        <choose>
+            <when test="cloudPublic == 'ownerAll'">
+                (
+                owner_id = #{ownerId}
+                )
+            </when>
+            <when test="cloudPublic == 'ownerPublic'">
+                (
+                owner_id = #{ownerId}
+                and
+                cloud_public = '1'
+                )
+            </when>
+            <when test="cloudPublic == 'ownerPrivate'">
+                (
+                owner_id = #{ownerId}
+                and
+                cloud_public = '0'
+                )
+            </when>
+            <otherwise>
+                (
+                owner_id = #{ownerId}
+                or
+                cloud_public = '1'
+                )
+            </otherwise>
+        </choose>
+        and
+        status = '1'
+        <if test="manufacturer and manufacturer != ''">
+            and
+            manufacturer = #{manufacturer}
+        </if>
+        <if test="searchText and searchText != ''">
+            and
+            (
+            product_name LIKE #{text}
+            or
+            model_name LIKE #{text}
+            or
+            manufacturer LIKE #{text}
+            )
+        </if>
+        <if test="deviceType and deviceType != ''">
+            and
+            device_type = #{deviceType}
+        </if>
+        ) as cnt,
+        HEX(id) as id,
+        cloud_public,
+        product_name,
+        model_name,
+        manufacturer,
+        device_type,
+        data_encryption_algo,
+        product_image_path,
+        mime_type,
+        protocol,
+        owner_id,
+        FROM_BASE64(description) as description,
+        DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at,
+        DATE_FORMAT(CONVERT_TZ(updated_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as updated_at
+        from
+        iot_cloud_devices
+        where
+        <choose>
+            <when test="cloudPublic == 'ownerAll'">
+                (
+                owner_id = #{ownerId}
+                )
+            </when>
+            <when test="cloudPublic == 'ownerPublic'">
+                (
+                owner_id = #{ownerId}
+                and
+                cloud_public = '1'
+                )
+            </when>
+            <when test="cloudPublic == 'ownerPrivate'">
+                (
+                owner_id = #{ownerId}
+                and
+                cloud_public = '0'
+                )
+            </when>
+            <otherwise>
+                (
+                owner_id = #{ownerId}
+                or
+                cloud_public = '1'
+                )
+            </otherwise>
+        </choose>
+        and
+        status = '1'
+        <if test="manufacturer and manufacturer != ''">
+            and
+            manufacturer = #{manufacturer}
+        </if>
+        <if test="searchText and searchText != ''">
+            and
+            (
+            product_name LIKE #{text}
+            or
+            model_name LIKE #{text}
+            or
+            manufacturer LIKE #{text}
+            )
+        </if>
+        <if test="deviceType and deviceType != ''">
+            and
+            device_type = #{deviceType}
+        </if>
+        order by
+        <choose>
+            <when test="orderBy == 'createdAtAsc'">
+                created_at asc
+            </when>
+            <when test="orderBy == 'createdAtDesc'">
+                created_at desc
+            </when>
+            <when test="orderBy == 'productNameAsc'">
+                product_name asc
+            </when>
+            <when test="orderBy == 'productNameDesc'">
+                product_name desc
+            </when>
+            <otherwise>
+                created_at desc
+            </otherwise>
+        </choose>
+        limit ${limit}
+        offset ${offset}
+    </select>
+    <insert id="addCloudDevice">
+        INSERT INTO
+        iot_cloud_devices (
+        id,
+        cloud_public,
+        device_type,
+        protocol,
+        <if test="dataEncryptionAlgo and dataEncryptionAlog != ''">
+            data_encryption_algo,
+        </if>        
+        product_image_path,
+        mime_type,
+        product_name,
+        model_name,
+        manufacturer,
+        <if test="description and description != ''">
+            description,
+        </if>
+        owner_id,
+        created_at,
+        updated_at
+        )
+        VALUES
+        (
+        UNHEX(#{id}),
+        #{cloudPublic},
+        #{deviceType},
+        #{protocol},
+        <if test="dataEncryptionAlgo and dataEncryptionAlog != ''">
+            #{dataEncryptionAlgo},
+        </if>        
+        #{productImagePath},
+        #{mimeType},
+        #{productName},
+        #{modelName},
+        #{manufacturer},
+        <if test="description and description != ''">
+            TO_BASE64(#{description}),
+        </if>
+        #{ownerId},
+        CURRENT_TIMESTAMP,
+        CURRENT_TIMESTAMP
+        );
+    </insert>
+    <select id="getCloudDevice">
+        select
+        HEX(id) as id,
+        cloud_public,
+        data_encryption_algo,
+        product_name,
+        model_name,
+        manufacturer,
+        device_type,
+        product_image_path,
+        mime_type,
+        protocol,
+        driver_status,
+        FROM_BASE64(description) as description,
+        (select count(*) from iot_cloud_units where cloud_device_id = UNHEX(#{id})) as units_length,
+        owner_id,
+        DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at,
+        DATE_FORMAT(CONVERT_TZ(updated_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as updated_at
+        from
+        iot_cloud_devices
+        where
+        id = UNHEX(#{id})
+    </select>
+    <select id="getCloudDevicesAttachList">
+        select
+        HEX(id) as id,
+        HEX(cloud_device_id) as cloud_device_id,
+        file_name,
+        file_path,
+        DATE_FORMAT(CONVERT_TZ(created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at
+        from
+        iot_cloud_devices_attachments
+        where
+        cloud_device_id = UNHEX(#{id})
+    </select>
+    <update id="updateCloudDevice">
+        update
+        iot_cloud_devices
+        set
+        product_name = #{productName},
+        model_name = #{modelName},
+        manufacturer = #{manufacturer},
+        <if test="productImagePath and productImagePath != ''">
+            product_image_path = #{productImagePath},
+            mime_type = #{mimeType},
+        </if>
+        description = TO_BASE64(#{description}),
+        <if test="protocol and protocol != ''">
+        protocol = #{protocol},
+        </if>
+        updated_at = NOW()
+        where id = UNHEX(#{id})
+        and owner_id = #{ownerId};
+    </update>
+    <delete id="deleteCloudDevice">
+        delete
+        from
+            iot_cloud_devices
+        where id = UNHEX(#{id})
+          and owner_id = #{ownerId};
+    </delete>
+    <select id="getNumOfCloudDeviceUsed">
+            select
+                count(*) as numOfCloudDeviceUsed
+            from
+                iot_devices
+            where
+                cloud_device_id = UNHEX(#{id})
+    </select>
+    <update id="publishCloudDevice">
+        update iot_cloud_devices
+        set cloud_public = '1'
+        where id = UNHEX(#{id})
+          and owner_id = #{ownerId};
+    </update>
+    <select id="getAttachmentsFilePath">
+        select file_path
+        from
+        iot_cloud_devices_attachments
+        where id
+        in (
+        <foreach collection="attachments" item="id" separator=",">
+            UNHEX(#{id})
+        </foreach>
+        )
+    </select>
+    <delete id="deleteAttachments">
+        delete
+        from
+        iot_cloud_devices_attachments
+        where id
+        in (
+        <foreach collection="attachments" item="id" separator=",">
+            UNHEX(#{id})
+        </foreach>
+        )
+    </delete>
+    <delete id="deleteAllAttachments">
+        delete
+        from
+        iot_cloud_devices_attachments
+        where cloud_device_id = unhex(#{cloudDeviceId});
+    </delete>
+    <insert id="addAttachments">
+        INSERT
+        INTO
+        iot_cloud_devices_attachments
+        (
+        id,
+        cloud_device_id,
+        file_name,
+        file_path,
+        user_id
+        )
+        VALUES
+        <foreach collection="attachments" item="attachment" separator=",">
+            (
+            UNHEX(#{attachment.id}),
+            UNHEX(#{attachment.cloudDeviceId}),
+            #{attachment.originalName},
+            #{attachment.filename},
+            #{attachment.userId}
+            )
+        </foreach>
+    </insert>
+    <update id="setDriverStatus">
+        update
+        iot_cloud_devices
+        set
+        driver_status = #{status}
+        where id = UNHEX(#{id})
+    </update>
+</mapper>

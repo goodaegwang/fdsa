@@ -1,0 +1,204 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="serviceDevices">
+    <select id="getServiceDeviceList">
+        <bind name="searchText" value="'%' + searchText + '%'"/>
+        select
+        (
+        select
+        count(*)
+        from
+        iot_links l,
+        iot_devices c,
+        iot_services_users u
+        where
+        l.service_id = UNHEX(#{serviceId})
+        and l.use_status = '1'
+        <if test="parentId and parentId != ''">
+            and
+            u.user_id = #{parentId}
+        </if>
+        and
+        l.id = c.link_id
+        and
+        l.user_id = u.user_id
+        <choose>
+            <when test="type == 'linkName'">
+                and
+                l.name LIKE #{searchText}
+            </when>
+            <when test="type == 'identifier'">
+                and
+                l.identifier LIKE #{searchText}
+            </when>
+            <when test="type == 'deviceName'">
+                and
+                c.name LIKE #{searchText}
+            </when>
+            <when test="type == 'userId'">
+                and
+                u.user_id LIKE #{searchText}
+            </when>
+            <when test="type == 'userName'">
+                and
+                u.name LIKE #{searchText}
+            </when>
+        </choose>
+        ) as cnt,
+        @rownum := @rownum + 1 as rownum,
+        D.*
+        from
+        (
+        select
+        cc.model_name as model_name,
+        l.name as link_name,
+        l.identifier,
+        c.name as device_name,
+        u.user_id,
+        u.name as user_name,
+        lc.address,
+        lc.name as location_name,
+        DATE_FORMAT(CONVERT_TZ(l.created_at, @@session.time_zone, '+00:00'), '%Y-%m-%dT%TZ') as created_at
+        from iot_links l
+        inner join iot_devices c on l.id = c.link_id
+        inner join iot_cloud_devices cc on cc.id = c.cloud_device_id
+        inner join iot_services_users u on l.user_id = u.user_id
+        left join iot_links_location lc on l.id = lc.link_id
+        where
+        l.service_id = UNHEX(#{serviceId})
+        and l.use_status = '1'
+        <if test="parentId and parentId != ''">
+            and
+            u.user_id = #{parentId}
+        </if>
+        <choose>
+            <when test="type == 'linkName'">
+                and
+                l.name LIKE #{searchText}
+            </when>
+            <when test="type == 'identifier'">
+                and
+                l.identifier LIKE #{searchText}
+            </when>
+            <when test="type == 'deviceName'">
+                and
+                c.name LIKE #{searchText}
+            </when>
+            <when test="type == 'userId'">
+                and
+                u.user_id LIKE #{searchText}
+            </when>
+            <when test="type == 'userName'">
+                and
+                u.name LIKE #{searchText}
+            </when>
+        </choose>
+        order by
+        <choose>
+            <when test="orderBy == 'identifierAsc'">
+                l.identifier asc
+            </when>
+            <when test="orderBy == 'identifierDesc'">
+                l.identifier desc
+            </when>
+            <when test="orderBy == 'createdAtAsc'">
+                l.created_at asc
+            </when>
+            <when test="orderBy == 'createdAtDesc'">
+                l.created_at desc
+            </when>
+            <when test="orderBy == 'userNameAsc'">
+                u.name asc
+            </when>
+            <when test="orderBy == 'userNameDesc'">
+                u.name desc
+            </when>
+            <when test="orderBy == 'userIdAsc'">
+                u.user_id asc
+            </when>
+            <when test="orderBy == 'userIdDesc'">
+                u.user_id desc
+            </when>
+            <when test="orderBy == 'linkNameAsc'">
+                l.name asc
+            </when>
+            <when test="orderBy == 'linkNameDesc'">
+                l.name desc
+            </when>
+            <when test="orderBy == 'deviceNameAsc'">
+                c.name asc
+            </when>
+            <when test="orderBy == 'deviceNameDesc'">
+                c.name desc
+            </when>
+            <when test="orderBy == 'nameAsc'">
+                l.name asc,
+                c.name asc
+            </when>
+            <when test="orderBy == 'nameDesc'">
+                l.name desc,
+                c.name desc
+            </when>
+            <otherwise>
+                l.name asc,
+                c.name asc
+            </otherwise>
+        </choose>
+        ) as D,
+        (select @rownum := ${offset}) as R
+        order by
+        <choose>
+            <when test="orderBy == 'identifierAsc'">
+                D.identifier asc
+            </when>
+            <when test="orderBy == 'identifierDesc'">
+                D.identifier desc
+            </when>
+            <when test="orderBy == 'createdAtAsc'">
+                D.created_at asc
+            </when>
+            <when test="orderBy == 'createdAtDesc'">
+                D.created_at desc
+            </when>
+            <when test="orderBy == 'userNameAsc'">
+                D.user_name asc
+            </when>
+            <when test="orderBy == 'userNameDesc'">
+                D.user_name desc
+            </when>
+            <when test="orderBy == 'userIdAsc'">
+                D.user_id asc
+            </when>
+            <when test="orderBy == 'userIdDesc'">
+                D.user_id desc
+            </when>
+            <when test="orderBy == 'linkNameAsc'">
+                D.link_name asc
+            </when>
+            <when test="orderBy == 'linkNameDesc'">
+                D.link_name desc
+            </when>
+            <when test="orderBy == 'deviceNameAsc'">
+                D.device_name asc
+            </when>
+            <when test="orderBy == 'deviceNameDesc'">
+                D.device_name desc
+            </when>
+            <when test="orderBy == 'nameAsc'">
+                D.link_name asc,
+                D.device_name asc
+            </when>
+            <when test="orderBy == 'nameDesc'">
+                D.link_name desc,
+                D.device_name desc
+            </when>
+            <otherwise>
+                D.link_name asc,
+                D.device_name asc
+            </otherwise>
+        </choose>
+        limit ${limit}
+        offset ${offset}
+    </select>
+</mapper>

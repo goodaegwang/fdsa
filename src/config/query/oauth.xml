@@ -1,0 +1,148 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN" "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+
+<mapper namespace="oauth">
+    <select id="getClient">
+        SELECT
+        client_id,
+        client_secret,
+        grant_type,
+        access_token_lifetime,
+        refresh_token_lifetime,
+        user_id
+        FROM
+        clients
+        WHERE
+        client_id = #{clientId}
+    </select>
+    <select id="getUser">
+        SELECT
+        id,
+        name,
+        image_path,
+        role,
+        status
+        FROM
+        users
+        WHERE
+        id = #{id}
+        AND
+        password = #{password}
+    </select>
+    <select id="getUserByRefreshToken">
+        SELECT
+        id,
+        name,
+        image_path,
+        role,
+        status
+        FROM
+        users
+        WHERE
+        id = #{id}
+    </select>
+    <select id="getServiceUser">
+        select
+        HEX(service_id) as service_id,
+        parent_id as id,
+        name,
+        role,
+        status
+        from iot_services_users
+        where
+        user_id = #{id}
+        and service_id = UNHEX(#{serviceId})
+        and password = #{password}
+    </select>
+    <select id="getServiceUserByRefreshToken">
+        select
+        HEX(service_id) as service_id,
+        parent_id as id,
+        name,
+        role,
+        status
+        from iot_services_users
+        where
+        user_id = #{id}
+        and service_id = UNHEX(#{serviceId})
+    </select>
+    <select id="getUserFromClient">
+        SELECT
+        id,
+        name,
+        image_path,
+        user_auth_lvl
+        FROM
+        users
+        WHERE
+        id = #{id}
+    </select>
+    <insert id="saveToken">
+        INSERT INTO
+        tokens (
+        client_id,
+        user_id,
+        refresh_token
+        ) VALUES (
+        #{clientId},
+        #{userId},
+        #{refreshToken}
+        )
+        ON DUPLICATE KEY UPDATE client_id=#{clientId}, refresh_token=#{refreshToken};
+    </insert>
+    <insert id="saveTokenForServiceUser">
+        INSERT INTO
+        iot_services_tokens (
+        client_id,
+        service_id,
+        user_id,
+        refresh_token
+        ) VALUES (
+        #{clientId},
+        UNHEX(#{serviceId}),
+        #{userId},
+        #{refreshToken}
+        )
+        ON DUPLICATE KEY UPDATE refresh_token=#{refreshToken};
+    </insert>
+    <select id="getRefreshToken">
+        select
+        t.client_id,
+        t.user_id,
+        t.refresh_token,
+        u.role
+        from
+        tokens t, users u
+        where
+        refresh_token = #{refreshToken}
+        and
+        t.user_id = u.id
+    </select>
+    <select id="getRefreshTokenForServiceUser">
+        select
+        t.client_id,
+        HEX(t.service_id) as service_id,
+        t.user_id,
+        t.refresh_token,
+        u.role
+        from
+        iot_services_tokens t, iot_services_users u
+        where
+        refresh_token = #{refreshToken}
+        and
+        t.service_id = u.service_id
+        and
+        t.user_id = u.user_id
+    </select>
+    <select id="getAuthInfoWithAppKey">
+        select
+        u.id as user_id,
+        u.password as password,
+        HEX(s.id) as service_id
+        from iot_services s, users u
+        where
+        s.app_key = #{appKey}
+        and
+        s.owner_id = u.id
+    </select>
+</mapper>

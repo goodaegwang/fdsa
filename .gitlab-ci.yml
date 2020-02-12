@@ -1,0 +1,87 @@
+#############################################
+### 필요 variables
+#############################################
+# AWS_DOCKER_ADDRESS : AWS 도커 원격접속 주소
+# AWS_ACCESS_KEY_ID : AWS 액세스 키
+# AWS_SECRET_ACCESS_KEY : AWS 시크릿 키
+# AWS_DEFAULT_REGION : 인스턴스 지역
+# REPOSITORY_URL : AWS ECR 저장소 주소
+#############################################
+
+stages:
+  - build-source
+  - build-docker
+  - deploy
+
+build-source:
+  stage: build-source
+  image: node:10-alpine
+  script:
+    # 소스 빌드 후 dist, package*.json, Dockerfile을 제외한 모든 파일 제거
+    - npm i
+    - npm run build
+    - find . -type d -maxdepth 1 -not -name '.' -not -name '..' -not -name 'dist' -exec rm -rf {} +
+    - find . -type f -maxdepth 1 -not -name 'package*.json' -not -name 'Dockerfile' -exec rm -rf {} +
+  after_script:
+    - ls -alh
+  artifacts:
+    paths:
+      - .
+  only:
+    - develop
+    - master
+  tags:
+    - build
+
+build-docker:
+  stage: build-docker
+  image: docker:19.03.1
+  before_script:
+    - apk add --no-cache curl jq python py-pip
+    - pip install awscli
+    - ls -alh
+    - rm -rf .git
+  script:
+    # 도커 서버를 ECR로 설정
+    - $(aws ecr get-login --no-include-email --region ${AWS_DEFAULT_REGION})
+    # 도커 이미지 빌드 후 ECR에 업로드
+    - docker build -t ${REPOSITORY_URL}:${CI_COMMIT_SHORT_SHA}-${CI_COMMIT_REF_NAME} .
+    - docker build -t ${REPOSITORY_URL}:latest-${CI_COMMIT_REF_NAME} .
+    - docker push ${REPOSITORY_URL}:${CI_COMMIT_SHORT_SHA}-${CI_COMMIT_REF_NAME}
+    - docker push ${REPOSITORY_URL}:latest-${CI_COMMIT_REF_NAME}
+  variables:
+    GIT_CHECKOUT: "false"
+  only:
+    - develop
+    - master
+  tags:
+    - build
+
+deploy:
+  stage: deploy
+  image: tmaier/docker-compose:latest
+  services:
+    - docker:dind
+  needs:
+    - job: build-docker
+      artifacts: false
+  before_script:
+    - source .${CI_COMMIT_REF_NAME}.env
+    - apk add --no-cache curl jq python py-pip
+    - pip install awscli
+  script:
+    # s3에서 docker config 파일 다운로드
+    - aws s3 cp s3://nubison-docker/aws-nubisoniot/.env .
+    - aws s3 cp s3://nubison-docker/aws-nubisoniot/docker-compose-nubison-${CI_COMMIT_REF_NAME}.yml .
+    # docker-compose 원격 명령어 실행
+    - $(aws ecr get-login --no-include-email --region ${AWS_DEFAULT_REGION})
+    - $NUBISON_DOCKER_COMPOSE -H $AWS_DOCKER_ADDRESS pull $CI_PROJECT_NAME
+    - docker -H $AWS_DOCKER_ADDRESS rm -f $CI_PROJECT_NAME || true
+    - $NUBISON_DOCKER_COMPOSE -H $AWS_DOCKER_ADDRESS up -d $CI_PROJECT_NAME
+  variables:
+    NUBISON_DOCKER_COMPOSE: docker-compose -f docker-compose-nubison-${CI_COMMIT_REF_NAME}.yml
+  only:
+    - develop
+    - master
+  tags:
+    - build

@@ -1,0 +1,22 @@
+{
+  "server": {
+    "port": 9000,
+    "logCategory": "production"
+  },
+  "driverServer": {
+    "baseURL": "http://localhost:7000/v2"
+  },
+  "mysql": {
+    "host": "localhost",
+    "port": 3306,
+    "database": "iot_cloud"
+  },
+  "mongo": {
+    "server": "localhost",
+    "port": 27017,
+    "dbname": "nubisonCloud",
+    "options": {
+      "authSource": "nubisonCloud"
+    }
+  }
+}

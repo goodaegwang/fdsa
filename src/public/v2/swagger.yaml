@@ -1,0 +1,5484 @@
+todos:
+  - Added version-specific error handling
+openapi: 3.0.0
+info:
+  title: NUBISON IoT REST API Docs
+  x-logo:
+    url: "/v2/images/logo.png"
+    backgroundColor: "#90c1f1"
+    altText: "NUBISON IoT logo"
+  description: |
+    이 문서는 Swagger로 작성된 [NUBISON IoT](https://nubisoniot.com)의 기능을 사용하기 위한 API 문서입니다.
+    Swagger에 대한 자세한 내용은 http://swagger.io를 참조하십시오. 본 API 문서는 [OpenAPI Specification v3.0](https://github.com/OAI/OpenAPI-Specification/blob/master/versions/3.0.0.md) 구문으로 작성되었습니다.
+
+    # 시작하며
+    이 문서는 [NUBISON IoT](https://nubisoniot.com)의 기능을 API 형식으로 제공하기위한 것입니다. 타사 제작자 또는 회사는 API를 사용하여 [NUBISON IoT](https://nubisoniot.com) 웹 사이트에 액세스하지 않고도 외부에서 NUBISON IoT 기능을 호출 할 수 있습니다.
+
+    이 API를 사용하면 IoT 디바이스를 NUBISON IoT 클라우드에 등록할 수 있으며 디바이스로부터 올라오는 데이터를 조회하거나 디바이스를 제어할 수 있습니다. 모든 기능은 OAuth 2.0 인증 클라이언트에서만 사용할 수 있습니다.
+
+    # 사전 준비사항
+    1. 애플리케이션 등록
+    2. 클라이언트 아이디와 클라이언트 시크릿 확인
+
+    # 용어 정리
+    본 문서에서 주로 사용하는 용어는 다음과 같습니다.
+
+    - **서비스(Service)** - NUBISON IoT 클라우드를 통해 IoT 서비스를 사용하거나 공급하기 위해서는 맨 처음 service를 NUBISON IoT 클라우드에서 생성해야 합니다. 이후 생성한 service 하위로 IoT 디바이스들을 연결할 수 있습니다.
+
+    - **IoT 연결(Link)** - NUBISON IoT 클라우드와 연결되는 endpoint를 지칭합니다. non-IoT 디바이스 같은 경우 게이트웨이를 통해 NUBISON IoT 클라우드에 연결될 수 있는데 이때는 게이트웨이가 연결이 되며 GatewayLink라 지칭합니다. IoT 디바이스가 직접 NUBISON IoT 클라우드에 연결하는 경우 IoT 디바이스가 연결이 되며 DirectLink라 지칭합니다.
+
+    - **디바이스(Device)** - 센서와 물리적으로 연결되어 있고 서버로부터 받은 제어 명렁이나 데이터 조회 명령을 실질적으로 수행하는 하드웨어를 통칭합니다. GatewayLink 하위에는 여러 디바이스가 존재할 수 있으며, DirectLink는 연결이면서 동시에 디바이스가 됩니다.
+
+    - **클라우드 디바이스(Cloud device)** - 디바이스의 모델별로 공통 기능을 추상화한 개념입니다. 디바이스의 하드웨어적 특징이나 클라우드와 연결하는 드라이버 등의 설정을 가집니다.
+
+    # Cross-Origin Resource Sharing
+    본 API는 브라우저에서 도메인 간 통신이 가능하게 하기 위해 [W3C spec](https://www.w3.org/TR/cors/)에 따라 구현된 CORS(Cross-Origin Resource Sharing) 기능을 제공합니다.
+
+
+    # Authentication
+    NUBISON IoT Rest API는 **OAuth2** 인증 형식을 제공합니다.
+    OAuth2를 사용하여 토큰 키를 받은 후 아래의 **Bearer authentication** 방법에 나와있는 방법에 따라 **HTTP 헤더**에 발급된 토큰 키를 추가하십시오.
+
+    - **OAuth2** - OAuth 2.0은 API 클라이언트가 웹 서버의 사용자 데이터에 제한된 액세스 권한을 부여하는 인증 프로토콜입니다. GitHub, Google 및 Facebook API가 이를 사용합니다. OAuth는 리소스 소유자(사용자)가 자신의 자격 증명을 공유하지 않고 리소스 서버에서 보호된 컨텐트를 공유할 수 있도록 하는 flows 라는 인증 시나리오에 의존합니다. 이를 위해 OAuth 2.0 서버는 클라이언트 애플리케이션이 리소스 소유자 대신 보호 된 리소스에 액세스하는 데 사용할 수있는 액세스 토큰을 발행합니다. OAuth 2.0에 대한 자세한 내용은 [oauth.net](https://oauth.net/2/) 및 [RFC 6749](https://tools.ietf.org/html/rfc6749)를 참조하십시오.
+
+    - **Basic authentication** - Basic authentication은 HTTP 프로토콜에 내장된 간단한 인증 체계입니다. 보안 토큰을 처음 요청할 때 사용하는 인증 방법입니다. 클라이언트는 기본 단어 다음에 공백과 base64로 인코딩 된 문자열 clientId:clientSecret이 포함된 Authorization 헤더를 사용하여 HTTP 요청을 보냅니다. 예를 들어, demo/p@55w0rd로 권한을 부여하려면 클라이언트는 다음을 전송합니다. Authorization: Basic ZGVtbzpwQDU1dzByZA==
+
+    - **Bearer authentication** - Bearer authentication(또는 token authentication 이라고 불립니다.)은 bearer token이라고 하는 보안 토큰과 관련된 [HTTP authentication scheme](https://developer.mozilla.org/en-US/docs/Web/HTTP/Authentication) 입니다. bearer token은 대개 로그인 요청에 대한 응답으로 서버에서 생성되는 암호문입니다. 클라이언트는 보호된 자원에 요청할 때 Authorization 헤더에 이 토큰을 포함하여 보내야 합니다.:
+      ```Authorization: Bearer <token>```
+
+    # 타임존
+    NUBISON IoT는 모든 시간 데이터를 UTC로 다룹니다. 따라서 특정 데이터 조회 시 예를 들어 통계 데이터등을 조회 시 요청하는 클라이언트의 timezone을 request에 포함해야 할 수 있습니다. 타임존은 문자열로 이루어져 있습니다.
+
+    자세한 내용은 [Time Zone Database](https://www.iana.org/time-zones)을 클릭하십시오.
+
+    <security-Models />
+  version: 2.0.0
+  contact:
+    email: nubisoniot@simplatform.com
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+servers:
+  - url: http://localhost:9000/v2
+    description: local server
+  - url: https://apidev.nubisoniot.com/v2
+    description: dev server
+tags:
+  - name: OAuth2
+    description: "사용자의 요청을 인증하기 위해 사용하는 인증 방식입니다."
+    externalDocs:
+      description: "OAuth2에 대한 자세한 내용을 보려면 클릭하십시오."
+      url: "https://oauth.net/2/"
+  - name: Service
+    description: "Rest API 서버를 통해, 서비스 리스트를 조회할 수 있습니다. 서비스를 생성하고 수정하고 삭제하는 것은 [NUBISON IoT](https://nubisoniot.com) 클라우드 페이지에서만 가능합니다."
+  - name: Service Users
+    description: "Rest API 서버를 통해, 서비스 하위 사용자들을 관리할 수 있습니다. 서비스 사용자 가입 및 정보 관리 기능 등이 제공됩니다."
+  - name: Link
+    description: "Rest API 서버를 통해, 연결 리스트를 조회하거나, 연결에 대한 추가/수정/삭제 작업이 가능합니다."
+  - name: Device
+    description: "Rest API 서버를 통해, 디바이스 리스트를 조회하거나, 디바이스에 대한 추가/수정/삭제 작업이 가능합니다."
+  - name: Cloud device
+    description: "Rest API 서버를 통해, 클라우드 디바이스 리스트를 조회하거나, 디바이스에 대한 추가/수정/삭제 작업이 가능합니다."
+  - name: Timeline
+    description: "Rest API 서버를 통해, 타임라인 리스트를 조회하거나, 타임라인을 추가할 수 있습니다."
+  - name: Device Data
+    description: "Rest API 서버를 통해, IoT 디바이스로부터 올라온 데이터를 조회할 수 있습니다."
+x-tagGroups:                                    # Group of tags.
+  - name: Authentication
+    tags:
+      - OAuth2
+  - name: IOT
+    tags:
+      - Service
+      - Service Users
+      - Link
+      - Device
+      - Cloud device
+      - Timeline
+  - name: Data
+    tags:
+      - Device Data
+components:
+  securitySchemes:                              # Description of authentication security information.
+    BasicAuth:
+      type: http
+      scheme: basic
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+paths:
+  /oauth/token:
+    #####################################################
+    ### [POST] /oauth/token :: Get a access token
+    #####################################################
+    post:
+      tags:
+        - OAuth2
+      summary: "Get a access token"
+      description: >
+        NUBISON IoT REST API 서비스를 사용하려면 먼저 사용자 인증단계를 거쳐 액세스 토큰을 획득해야합니다. 액세스 토큰을 얻는 방법은 세 가지가 있습니다.
+
+        1. [Client Credentials](https://tools.ietf.org/html/rfc6749#section-1.3.4)
+
+        Client Credentials grant type 은 클라이언트가 사용자의 컨텍스트 외부에서 액세스 토큰을 얻는 데 사용됩니다. 이 방법은 client_id, client_secret 값이 필수입니다. client_id 및 client_secret은 NUBISON IoT 클라우드를 통해 생성할 수 있습니다. 인증에 성공하면 access token과 refresh token이 반환됩니다.
+
+
+        2. [Password](https://tools.ietf.org/html/rfc6749#section-1.3.3)
+
+        Password grant type 은 사용자 자격 증명을 교환하는 데 사용됩니다. 이 방법은 client_id, username, encrypted password(SHA256) 값이 필수입니다. client_id는 NUBISON IoT 클라우드를 통해 생성할 수 있습니다. 인증에 성공하면 access token과 refresh token이 반환됩니다.
+
+
+        3. [Refresh Token](https://tools.ietf.org/html/rfc6749#section-1.5)
+
+        Refresh Token grant type 은 클라이언트가 access token 이 만료되었을 때 이를 다시 발급받기 위해 사용합니다.
+        다시 발급받은 access token을 요청 인증 헤더에 포함하여 API를 호출하십시오.
+
+        example header:
+        Authorization Bearer `access token`
+
+        Access token의 기본 유효기간은 3시간이며 Refresh token은 90일입니다. 이는 로그인 정보 유지 여부 따라 혹은 클라이언트 설정 시 변경될 수 있습니다.
+
+      security:
+        - BasicAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+            pattern: 'Basic base64(client_id:client_secret)'
+          required: true
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/Parameter/token/default"
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            POST /v2/oauth/token HTTP/1.1
+            Host: localhost
+            Content-Type: application/x-www-form-urlencoded
+            cache-control: no-cache
+
+            grant_type=password&client_id=RESTAPITestClient&username=test%40simplatform.compassword=03AC674216F3E15C761EE1A5E255F067953623C8B388B4459E13F978D7C846F4
+        - lang: cURL
+          source: |
+            curl -X POST \
+              http://localhost:9000/v2/oauth/token \
+              -H 'Content-Type: application/x-www-form-urlencoded' \
+              -H 'cache-control: no-cache' \
+              -d 'grant_type=password&client_id=RESTAPITestClient&username=test%40simplatform.com&password=03AC674216F3E15C761EE1A5E255F067953623C8B388B4459E13F978D7C846F4'
+      responses:
+        200:
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Token"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/AUTH401'
+                  - $ref: '#/ErrorCode/AUTH402'
+                  - $ref: '#/ErrorCode/AUTH403'
+                  - $ref: '#/ErrorCode/AUTH404'
+                  - $ref: '#/ErrorCode/AUTH405'
+                  - $ref: '#/ErrorCode/AUTH406'
+                  - $ref: '#/ErrorCode/AUTH407'
+                  - $ref: '#/ErrorCode/AUTH408'
+                  - $ref: '#/ErrorCode/AUTH101'
+                  - $ref: '#/ErrorCode/AUTH102'
+                discriminator:
+                  mapping:
+                    AUTH401: '#/ErrorCode/AUTH401'
+                    AUTH402: '#/ErrorCode/AUTH402'
+                    AUTH403: '#/ErrorCode/AUTH403'
+                    AUTH404: '#/ErrorCode/AUTH404'
+                    AUTH405: '#/ErrorCode/AUTH405'
+                    AUTH406: '#/ErrorCode/AUTH406'
+                    AUTH407: '#/ErrorCode/AUTH407'
+                    AUTH408: '#/ErrorCode/AUTH408'
+                    AUTH101: '#/ErrorCode/AUTH101'
+                    AUTH102: '#/ErrorCode/AUTH102'
+        401:
+          $ref: "#/StatusCode/401"
+  /oauth/token/services/{serviceId}:
+    #####################################################
+    ### [POST] /oauth/token/services/{serviceId} :: Get a access token for service user
+    #####################################################
+    post:
+      tags:
+        - OAuth2
+      summary: "Get a access token for service user"
+      description: >
+        NUBISON IoT Service 유저는 password grant를 사용하여 액세스 토큰을 획득합니다. 이 방법은 client_id, username, encrypted password(SHA256) 값이 필수입니다.
+
+
+        client_id은 NUBISON IoT 클라우드를 통해 생성할 수 있습니다. 인증에 성공하면 access token과 refresh token이 반환됩니다.
+
+        Access token의 기본 유효기간은 3시간이며 Refresh token은 90일입니다. 이는 로그인 정보 유지 여부 따라 혹은 클라이언트 설정 시 변경될 수 있습니다.
+
+      security:
+        - BasicAuth: []
+      parameters:
+        - in: header
+          name: Authorization
+          schema:
+            type: string
+            pattern: 'Basic base64(client_id:client_secret)'
+          required: true
+      requestBody:
+        content:
+          application/x-www-form-urlencoded:
+            schema:
+              $ref: "#/Parameter/token/service_user"
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            POST /v2/services/F5B64CF7C9BE433E86B83A870501DFC0/oauth/token HTTP/1.1
+            Host: localhost
+            Content-Type: application/x-www-form-urlencoded
+            cache-control: no-cache
+
+            grant_type=password&client_id=RESTAPITestClient&username=test%40simplatform.compassword=03AC674216F3E15C761EE1A5E255F067953623C8B388B4459E13F978D7C846F4
+        - lang: cURL
+          source: |
+            curl -X POST \
+              http://localhost:9000/v2/services/F5B64CF7C9BE433E86B83A870501DFC0/oauth/token \
+              -H 'Content-Type: application/x-www-form-urlencoded' \
+              -H 'cache-control: no-cache' \
+              -d 'grant_type=password&client_id=RESTAPITestClient&username=test%40simplatform.com&password=03AC674216F3E15C761EE1A5E255F067953623C8B388B4459E13F978D7C846F4'
+      responses:
+        200:
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Token"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/AUTH401'
+                  - $ref: '#/ErrorCode/AUTH402'
+                  - $ref: '#/ErrorCode/AUTH403'
+                  - $ref: '#/ErrorCode/AUTH404'
+                  - $ref: '#/ErrorCode/AUTH405'
+                  - $ref: '#/ErrorCode/AUTH406'
+                  - $ref: '#/ErrorCode/AUTH407'
+                  - $ref: '#/ErrorCode/AUTH408'
+                  - $ref: '#/ErrorCode/AUTH101'
+                  - $ref: '#/ErrorCode/AUTH102'
+                discriminator:
+                  mapping:
+                    AUTH401: '#/ErrorCode/AUTH401'
+                    AUTH402: '#/ErrorCode/AUTH402'
+                    AUTH403: '#/ErrorCode/AUTH403'
+                    AUTH404: '#/ErrorCode/AUTH404'
+                    AUTH405: '#/ErrorCode/AUTH405'
+                    AUTH406: '#/ErrorCode/AUTH406'
+                    AUTH407: '#/ErrorCode/AUTH407'
+                    AUTH408: '#/ErrorCode/AUTH408'
+                    AUTH101: '#/ErrorCode/AUTH101'
+                    AUTH102: '#/ErrorCode/AUTH102'
+        401:
+          $ref: "#/StatusCode/401"
+  /services:
+    #####################################################
+    ### [GET] /iot/services :: Get service list
+    #####################################################
+    get:
+      tags:
+        - Service
+      summary: "Get service list"
+      description: |
+        서비스 리스트를 반환합니다.
+
+        offset 파라미터로 요청 시작 아이템 위치를 지정할 수 있습니다. pagenation의 페이지 번호와 limit으로 offset을 구할 수 있습니다. 또한 limit 파라미터로 요청 아이템 갯수를 설정할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            exclusiveMinimum: true
+            minimum: 0
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            GET /v2/services HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+            Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOiJ0ZXN0QHNpbXBsYXRmb3JtLmNvbSIsInNjb3BlIjoiMDAwMSIsImlhdCI6MTUzODAyOTY4MiwiZXhwIjoxNTQ4ODI5NjgyfQ.wcik-OrFoI95RXxSGMYaeBq_osybmvYAbZ_7dXTsAY8
+        - lang: cURL
+          source: |
+            curl -X GET \
+              'http://localhost:9000/v2/services?offset=0&limit=30' \
+              -H 'cache-control: no-cache' \
+              -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOiJ0ZXN0QHNpbXBsYXRmb3JtLmNvbSIsInNjb3BlIjoiMDAwMSIsImlhdCI6MTUzODAyOTY4MiwiZXhwIjoxNTQ4ODI5NjgyfQ.wcik-OrFoI95RXxSGMYaeBq_osybmvYAbZ_7dXTsAY8'
+      responses:
+        200:
+          $ref: "#/Response/Service"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICES401'
+                  - $ref: '#/ErrorCode/SERVICES402'
+                  - $ref: '#/ErrorCode/SERVICES403'
+                  - $ref: '#/ErrorCode/SERVICES404'
+                discriminator:
+                  mapping:
+                    SERVICES401: '#/ErrorCode/SERVICES401'
+                    SERVICES402: '#/ErrorCode/SERVICES402'
+                    SERVICES403: '#/ErrorCode/SERVICES403'
+                    SERVICES404: '#/ErrorCode/SERVICES404'
+        401:
+          $ref: "#/StatusCode/401"
+  /services/{serviceId}:
+    #####################################################
+    ### [GET] /services/{serviceId} :: Get a service by id
+    #####################################################
+    get:
+      tags:
+        - Service
+      summary: "Get a service by id"
+      description: "하나의 서비스에 대한 정보를 반환합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            GET /v2/services/D8720522AEFF11E7B252186590CEC0C1 HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+            Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOiJ0ZXN0QHNpbXBsYXRmb3JtLmNvbSIsInNjb3BlIjoiMDAwMSIsImlhdCI6MTUzODAyOTY4MiwiZXhwIjoxNTQ4ODI5NjgyfQ.wcik-OrFoI95RXxSGMYaeBq_osybmvYAbZ_7dXTsAY8
+        - lang: cURL
+          source: |
+            curl -X GET \
+              http://localhost:9000/v2/services/D8720522AEFF11E7B252186590CEC0C1 \
+              -H 'cache-control: no-cache'
+              -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOiJ0ZXN0QHNpbXBsYXRmb3JtLmNvbSIsInNjb3BlIjoiMDAwMSIsImlhdCI6MTUzODAyOTY4MiwiZXhwIjoxNTQ4ODI5NjgyfQ.wcik-OrFoI95RXxSGMYaeBq_osybmvYAbZ_7dXTsAY8'
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Service"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/devices:
+    #####################################################
+    ### [GET] /services/{serviceId}/device :: Get a list of devices under Service
+    #####################################################
+    get:
+      tags:
+        - Service
+      summary: "Get a list of devices under Service"
+      description: "서비스 하위의 장치 목록을 조회합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 10
+            multipleOf: 10
+        - in: query
+          name: type
+          required: true
+          description: |
+            검색 타입입니다.
+
+            * `all` : 전체 조회. 해당 타입일 경우 `searchText` 파라미터 값을 무시합니다.
+            * `linkName` : 연결 이름 검색
+            * `identifier` : 연결 식별자 검색
+            * `deviceName` : 디바이스 이름 검색
+            * `userId` : 보유 회원 ID 검색
+            * `userName` : 보유 회원명 검색
+          schema:
+            type: string
+            enum:
+              - all
+              - linkName
+              - identifier
+              - deviceName
+        - in: query
+          name: searchText
+          required: true
+          description: "검색단어입니다. 연결 이름 혹은 연결 식별자 혹은 디바이스 이름이 될 수 있습니다. 항목이 없는 경우 전체 대상으로 조회합니다."
+          schema:
+            type: string
+        - in: query
+          name: orderBy
+          required: true
+          description: |
+            정렬 방식입니다. 빈값 입력 시 기본 값으로 연결 - 디바이스 이름 오름차순(`nameAsc`)으로 조회합니다.
+
+            * `nameAsc` : 연결 - 디바이스 이름 오름차순
+            * `nameDesc` : 연결 - 디바이스 이름 내림차순
+            * `identifierAsc` : 연결 식별자 오름차순
+            * `identifierDesc` : 연결 식별자 내림차순
+            * `createdAtAsc` : 기기 생성일 내림차순
+            * `createdAtDesc` : 기기 생성일 내림차순
+          schema:
+            type: string
+            enum:
+              - nameAsc
+              - nameDesc
+              - identifierAsc
+              - identifierDesc
+              - createdAtAsc
+              - createdAtDesc
+      responses:
+        200:
+          $ref: "#/Response/Device"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER408'
+                  - $ref: '#/ErrorCode/SERVICEUSER409'
+                  - $ref: '#/ErrorCode/SERVICEUSER410'
+                  - $ref: '#/ErrorCode/SERVICEUSER411'
+                  - $ref: '#/ErrorCode/SERVICEUSER412'
+                  - $ref: '#/ErrorCode/SERVICEUSER413'
+                discriminator:
+                  mapping:
+                    SERVICEUSER408: '#/ErrorCode/SERVICEUSER408'
+                    SERVICEUSER409: '#/ErrorCode/SERVICEUSER409'
+                    SERVICEUSER410: '#/ErrorCode/SERVICEUSER410'
+                    SERVICEUSER411: '#/ErrorCode/SERVICEUSER411'
+                    SERVICEUSER412: '#/ErrorCode/SERVICEUSER412'
+                    SERVICEUSER413: '#/ErrorCode/SERVICEUSER413'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/pushkeys:
+    #####################################################
+    ### [GET] /services/{serviceId}/pushkeys :: Get a list of pushkey under Service
+    #####################################################
+    get:
+      tags:
+        - Service
+      summary: "Get a list of pushkey under Service"
+      description: "서비스 하위의 사용자 앱 푸시키 목록을 조회합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 10
+            multipleOf: 10
+        - in: query
+          name: os
+          required: true
+          description: "앱이 설치된 디바이스의 os입니다. 빈 값인 경우 전체를 대상으로 조회합니다."
+          schema:
+            type: string
+        - in: query
+          name: cloudDeviceId
+          required: true
+          description: "클라우드 디바이스 아이디입니다. 빈 값인 경우 전체를 대상으로 조회합니다."
+          schema:
+            type: string
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  type: string
+                  description: "푸시키 배열입니다."
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER412'
+                  - $ref: '#/ErrorCode/SERVICEUSER413'
+                  - $ref: '#/ErrorCode/SERVICEUSER422'
+                  - $ref: '#/ErrorCode/SERVICEUSER423'
+                discriminator:
+                  mapping:
+                    SERVICEUSER412: '#/ErrorCode/SERVICEUSER412'
+                    SERVICEUSER413: '#/ErrorCode/SERVICEUSER413'
+                    SERVICEUSER422: '#/ErrorCode/SERVICEUSER422'
+                    SERVICEUSER423: '#/ErrorCode/SERVICEUSER423'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users:
+    #####################################################
+    ### [GET] /services/{serviceId}/users :: Get service user list
+    #####################################################
+    get:
+      tags:
+        - Service Users
+      summary: Get service user list
+      description: |
+        서비스를 사용하는 사용자 리스트를 반환합니다.
+
+        offset 파라미터로 요청 시작 아이템 위치를 지정할 수 있습니다. pagenation의 페이지 번호와 limit으로 offset을 구할 수 있습니다. 또한 limit 파라미터로 요청 아이템 갯수를 설정할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 10
+            multipleOf: 10
+        - in: query
+          name: type
+          required: true
+          description: |
+            검색 타입입니다.
+
+            * `all` : 전체 조회
+            * `name` : 이름 검색
+            * `id` : ID 검색
+          schema:
+            type: string
+            enum:
+              - all
+              - name
+              - id
+        - in: query
+          name: searchText
+          required: true
+          description: "검색단어입니다. 이름 혹은 ID가 될 수 있습니다. 항목이 없는 경우 전체 대상으로 조회합니다."
+          schema:
+            type: string
+        - in: query
+          name: orderBy
+          required: true
+          description: |
+            정렬 방식입니다. 빈값 입력 시 기본 값으로 ID 오름차순(`idAsc`)으로 조회합니다.
+
+            * `idAsc` : ID 오름차순
+            * `idDesc` : ID 내림차순
+            * `nameAsc` : 이름 오름차순
+            * `nameDesc` : 이름 내림차순
+            * `createdAtAsc`: 가입일 오름차순
+            * `createdAtDesc`: 가입일 내림차순
+          schema:
+            type: string
+            enum:
+              - idAsc
+              - idDesc
+              - nameAsc
+              - nameDesc
+              - createdAtAsc
+              - createdAtDesc
+        - in: query
+          name: status
+          description: |
+            회원 상태 구분입니다. 빈값 입력 시 기본 값으로 전체 회원을 조회합니다.
+
+            * '1': 정상회원
+            * '4': 탈퇴회원
+          required: true
+          schema:
+            type: string
+            enum:
+              - 1
+              - 4
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            GET /v2/services/D8720522AEFF11E7B252186590CEC0C1/users HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+        - lang: cURL
+          source: |
+            curl -X GET \
+              http://localhost:9000/v2/services/D8720522AEFF11E7B252186590CEC0C1/users \
+              -H 'cache-control: no-cache' \
+      responses:
+        200:
+          $ref: "#/Response/ServiceUsers"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER408'
+                  - $ref: '#/ErrorCode/SERVICEUSER409'
+                  - $ref: '#/ErrorCode/SERVICEUSER410'
+                  - $ref: '#/ErrorCode/SERVICEUSER411'
+                  - $ref: '#/ErrorCode/SERVICEUSER412'
+                  - $ref: '#/ErrorCode/SERVICEUSER413'
+                  - $ref: '#/ErrorCode/SERVICEUSER421'
+                discriminator:
+                  mapping:
+                    SERVICEUSER408: '#/ErrorCode/SERVICEUSER408'
+                    SERVICEUSER409: '#/ErrorCode/SERVICEUSER409'
+                    SERVICEUSER410: '#/ErrorCode/SERVICEUSER410'
+                    SERVICEUSER411: '#/ErrorCode/SERVICEUSER411'
+                    SERVICEUSER412: '#/ErrorCode/SERVICEUSER412'
+                    SERVICEUSER413: '#/ErrorCode/SERVICEUSER413'
+                    SERVICEUSER421: '#/ErrorCode/SERVICEUSER421'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [POST] /services/{serviceId}/users :: Join service user
+    #####################################################
+    post:
+      tags:
+        - Service Users
+      summary: Join service user
+      description: |
+        서비스 사용자를 추가합니다.
+      security:
+        - BasicAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceId
+                - userId
+                - name
+                - password
+              properties:
+                userId:
+                  $ref: "#/Model/ServiceUser/properties/userId"
+                parentId:
+                  $ref: "#/Model/ServiceUser/properties/parentId"
+                password:
+                  type: string
+                  description: 비밀번호(encrypted password, SHA256)입니다.
+                  example: F5B64CF7C9BE433E86B83A870501DFC0
+                name:
+                  $ref: "#/Model/ServiceUser/properties/name"
+                tel:
+                  $ref: "#/Model/ServiceUser/properties/tel"
+                mobilePhone:
+                  $ref: "#/Model/ServiceUser/properties/mobilePhone"
+                address:
+                  $ref: "#/Model/ServiceUser/properties/address"
+                addressDesc:
+                  $ref: "#/Model/ServiceUser/properties/addressDesc"
+                email:
+                  $ref: "#/Model/ServiceUser/properties/email"
+                birthday:
+                  $ref: "#/Model/ServiceUser/properties/birthday"
+                gender:
+                  $ref: "#/Model/ServiceUser/properties/gender"
+                maritalStatus:
+                  $ref: "#/Model/ServiceUser/properties/maritalStatus"
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            POST /v2/services/D8720522AEFF11E7B252186590CEC0C1/users HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            cache-control: no-cache
+
+            {
+            "userId": "homeiot",
+            "parentId": "zdsoidfs",
+            "password": "F5B64CF7C9BE433E86B83A870501DFC0",
+            "name": "홍길동",
+            "tel": "02-352-4300",
+            "mobilePhone": "010-9231-2311",
+            "address": "서울시 금천구 가산디지털1로 226",
+            "addressDesc": "에이스하이엔드타워 5차 2003호",
+            "email": "iot@simplatform.com",
+            "birthday": "2000-01-23",
+            "gender": 1,
+            "maritalStatus": 1
+            }
+        - lang: cURL
+          source: |
+            curl -X POST \
+              http://localhost:9000/v2/services/D8720522AEFF11E7B252186590CEC0C1/users \
+              -H 'Content-Type: application/json' \
+              -H 'cache-control: no-cache' \
+              -d '{"userId": "homeiot"}'
+              -d '{"parentId": "zdsoidfs"}'
+              -d '{"password": "F5B64CF7C9BE433E86B83A870501DFC0"}'
+              -d '{"name": "홍길동"}'
+              -d '{"tel": "02-352-4300"}'
+              -d '{"mobilePhone": "010-9231-2311"}'
+              -d '{"address": "서울시 금천구 가산디지털1로 226"}'
+              -d '{"addressDesc": "에이스하이엔드타워 5차 2003호"}'
+              -d '{"email": "iot@simplatform.com"}'
+              -d '{"birthday": "2000-01-23"}'
+              -d '{"gender": 1}'
+              -d '{"maritalStatus": 1}'
+      responses:
+        201:
+          $ref: "#/StatusCode/201"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER401'
+                  - $ref: '#/ErrorCode/SERVICEUSER402'
+                  - $ref: '#/ErrorCode/SERVICEUSER403'
+                discriminator:
+                  mapping:
+                    SERVICEUSER401: '#/ErrorCode/SERVICEUSER401'
+                    SERVICEUSER402: '#/ErrorCode/SERVICEUSER402'
+                    SERVICEUSER403: '#/ErrorCode/SERVICEUSER403'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/{userId}:
+    #####################################################
+    ### [GET] /services/{serviceId}/users/{userId} :: Get a service user information
+    #####################################################
+    get:
+      tags:
+        - Service Users
+      summary: Get a service user information
+      description: |
+        서비스 사용자 정보를 조회합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: userId
+          description: "서비스 사용자 아이디입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/ServiceUser"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [PATCH] /services/{serviceId}/users/{userId} :: Update a service user information
+    #####################################################
+    patch:
+      tags:
+        - Service Users
+      summary: Update a service user information
+      description: |
+        서비스 사용자 정보를 업데이트합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: userId
+          description: "서비스 사용자 아이디입니다."
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                password:
+                  type: string
+                  description: 비밀번호(encrypted password, SHA256)입니다.
+                  example: F5B64CF7C9BE433E86B83A870501DFC0
+                name:
+                  $ref: "#/Model/ServiceUser/properties/name"
+                role:
+                  $ref: "#/Model/ServiceUser/properties/role"
+                tel:
+                  $ref: "#/Model/ServiceUser/properties/tel"
+                mobilePhone:
+                  $ref: "#/Model/ServiceUser/properties/mobilePhone"
+                address:
+                  $ref: "#/Model/ServiceUser/properties/address"
+                addressDesc:
+                  $ref: "#/Model/ServiceUser/properties/addressDesc"
+                email:
+                  $ref: "#/Model/ServiceUser/properties/email"
+                birthday:
+                  $ref: "#/Model/ServiceUser/properties/birthday"
+                gender:
+                  $ref: "#/Model/ServiceUser/properties/gender"
+                maritalStatus:
+                  $ref: "#/Model/ServiceUser/properties/maritalStatus"
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/{userId}/withdrawal:
+    #####################################################
+    ### [POST] /services/{serviceId}/users/{userId}/withdrawal :: Withdrawal from service
+    #####################################################
+    post:
+      tags:
+        - Service Users
+      summary: Withdrawal from service
+      description: |
+        서비스에서 탈퇴합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: userId
+          description: "서비스 사용자 아이디입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/check:
+    #####################################################
+    ### [POST] /services/{serviceId}/users/check :: Check duplicate id
+    #####################################################
+    post:
+      tags:
+        - Service Users
+      summary: Check duplicate id
+      description: |
+        사용자 ID의 중복 여부를 검사합니다.
+      security:
+        - BasicAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - userId
+              properties:
+                userId:
+                  $ref: "#/Model/ServiceUser/properties/userId"
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                    description: ID 중복 여부
+                    example: false
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/idInquery/phone:
+    #####################################################
+    ### [GET] /services/{serviceId}/users/idInquery/phone :: Find service user ID by mobile phone
+    #####################################################
+    get:
+      tags:
+        - Service Users
+      summary: Find service user ID by mobile phone
+      description: |
+        핸드폰 번호로 사용자 ID를 찾습니다.
+      security:
+        - BasicAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: name
+          description: "사용자 이름입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: mobilePhone
+          description: "핸드폰 번호입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/Model/ServiceUser/properties/userId"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER101'
+                  - $ref: '#/ErrorCode/SERVICEUSER403'
+                  - $ref: '#/ErrorCode/SERVICEUSER406'
+                discriminator:
+                  mapping:
+                    SERVICEUSER101: '#/ErrorCode/SERVICEUSER101'
+                    SERVICEUSER403: '#/ErrorCode/SERVICEUSER403'
+                    SERVICEUSER406: '#/ErrorCode/SERVICEUSER406'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/idInquery/email:
+    #####################################################
+    ### [GET] /services/{serviceId}/users/idInquery/email :: Find service user ID by email
+    #####################################################
+    get:
+      tags:
+        - Service Users
+      summary: Find service user ID by email
+      description: |
+        이메일 주소로 사용자 ID를 찾습니다.
+      security:
+        - BasicAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: name
+          description: "사용자 이름입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: email
+          description: "이메일 주소입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: Successful operation.
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/Model/ServiceUser/properties/userId"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER101'
+                  - $ref: '#/ErrorCode/SERVICEUSER403'
+                  - $ref: '#/ErrorCode/SERVICEUSER405'
+                discriminator:
+                  mapping:
+                    SERVICEUSER101: '#/ErrorCode/SERVICEUSER101'
+                    SERVICEUSER403: '#/ErrorCode/SERVICEUSER403'
+                    SERVICEUSER405: '#/ErrorCode/SERVICEUSER405'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/security:
+    #####################################################
+    ### [PATCH] /services/{serviceId}/users/security :: Change the password for the service user
+    #####################################################
+    patch:
+      tags:
+        - Service Users
+      summary: Change the password for the service user
+      description: |
+        서비스 사용자의 비밀번호를 변경합니다. 로그인 하지 않은 상태에서 비밀번호 변경을 수행하는 서비스 애플리케이션을 고려하여 해당 항목에 대한 인증은 BasicAuth로 진행합니다.
+
+        따라서 해당 기능에 대한 보안은 서비스 애플리케이션에서 고려해야 합니다.
+      security:
+        - BasicAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+                - userId
+              properties:
+                userId:
+                  $ref: "#/Model/ServiceUser/properties/userId"
+                password:
+                  type: string
+                  description: 비밀번호(encrypted password, SHA256)입니다.
+                  example: F5B64CF7C9BE433E86B83A870501DFC0
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER101'
+                  - $ref: '#/ErrorCode/SERVICEUSER401'
+                  - $ref: '#/ErrorCode/SERVICEUSER402'
+                discriminator:
+                  mapping:
+                    SERVICEUSER101: '#/ErrorCode/SERVICEUSER101'
+                    SERVICEUSER401: '#/ErrorCode/SERVICEUSER401'
+                    SERVICEUSER402: '#/ErrorCode/SERVICEUSER402'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"/services/{serviceId}/users/security:
+  /services/{serviceId}/users/{userId}/password:
+    #####################################################
+    ### [POST] /services/{serviceId}/users/{userId}/password :: Confirm password for the service user
+    #####################################################
+    post:
+      tags:
+        - Service Users
+      summary: Confirm password for the service user
+      description: |
+        서비스 사용자의 비밀번호가 입력값과 동일한지 확인합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: userId
+          description: "사용자 아이디입니다."
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - password
+              properties:
+                password:
+                  type: string
+                  description: 비밀번호(encrypted password, SHA256)입니다.
+                  example: F5B64CF7C9BE433E86B83A870501DFC0
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                    description: "비밀번호 일치 여부"
+                    example: true
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER101'
+                  - $ref: '#/ErrorCode/SERVICEUSER402'
+                  - $ref: '#/ErrorCode/SERVICEUSER407'
+                discriminator:
+                  mapping:
+                    SERVICEUSER101: '#/ErrorCode/SERVICEUSER101'
+                    SERVICEUSER402: '#/ErrorCode/SERVICEUSER402'
+                    SERVICEUSER407: '#/ErrorCode/SERVICEUSER407'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/{userId}/members:
+    #####################################################
+    ### [GET] /services/{serviceId}/users/{userId}/members :: Get a service user's member
+    #####################################################
+    get:
+      tags:
+        - Service Users
+      summary: Get a service user's member
+      description: |
+        서비스 사용자의 하위 사용자를 조회합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: userId
+          description: "사용자 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 10
+            multipleOf: 10
+        - in: query
+          name: type
+          required: true
+          description: |
+            검색 타입입니다.
+
+            * `all` : 전체 조회
+            * `name` : 이름 검색
+            * `id` : ID 검색
+          schema:
+            type: string
+            enum:
+              - all
+              - name
+              - id
+        - in: query
+          name: searchText
+          required: true
+          description: "검색단어입니다. 이름 혹은 ID가 될 수 있습니다. 항목이 없는 경우 전체 대상으로 조회합니다."
+          schema:
+            type: string
+        - in: query
+          name: orderBy
+          required: true
+          description: |
+            정렬 방식입니다. 빈값 입력 시 기본 값으로 ID 오름차순(`idAsc`)으로 조회합니다.
+
+            * `idAsc` : ID 오름차순
+            * `idDesc` : ID 내림차순
+            * `nameAsc` : 이름 오름차순
+            * `nameDesc` : 이름 내림차순
+          schema:
+            type: string
+            enum:
+              - idAsc
+              - idDesc
+              - nameAsc
+              - nameDesc
+      responses:
+        200:
+          $ref: "#/Response/ServiceUsers"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER408'
+                  - $ref: '#/ErrorCode/SERVICEUSER409'
+                  - $ref: '#/ErrorCode/SERVICEUSER410'
+                  - $ref: '#/ErrorCode/SERVICEUSER411'
+                  - $ref: '#/ErrorCode/SERVICEUSER412'
+                  - $ref: '#/ErrorCode/SERVICEUSER413'
+                discriminator:
+                  mapping:
+                    SERVICEUSER408: '#/ErrorCode/SERVICEUSER408'
+                    SERVICEUSER409: '#/ErrorCode/SERVICEUSER409'
+                    SERVICEUSER410: '#/ErrorCode/SERVICEUSER410'
+                    SERVICEUSER411: '#/ErrorCode/SERVICEUSER411'
+                    SERVICEUSER412: '#/ErrorCode/SERVICEUSER412'
+                    SERVICEUSER413: '#/ErrorCode/SERVICEUSER413'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/{userId}/devices:
+    #####################################################
+    ### [GET] /services/{serviceId}/users/{userId}/devices :: Get a service user's device
+    #####################################################
+    get:
+      tags:
+        - Service Users
+      summary: Get a service user's device
+      description: |
+        서비스 사용자가 등록한 기기를 조회합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: userId
+          description: "사용자 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 10
+            multipleOf: 10
+        - in: query
+          name: type
+          required: true
+          description: |
+            검색 타입입니다.
+
+            * `all` : 전체 조회. 해당 타입일 경우 searchText 파라미터 값을 무시합니다.
+            * `linkName` : 연결 이름 검색
+            * `identifier` : 연결 식별자 검색
+            * `deviceName` : 디바이스 이름 검색
+          schema:
+            type: string
+            enum:
+              - all
+              - linkName
+              - identifier
+              - deviceName
+        - in: query
+          name: searchText
+          required: true
+          description: "검색단어입니다. 연결 이름 혹은 연결 식별자 혹은 디바이스 이름이 될 수 있습니다. 항목이 없는 경우 전체 대상으로 조회합니다."
+          schema:
+            type: string
+        - in: query
+          name: orderBy
+          required: true
+          description: |
+            정렬 방식입니다. 빈값 입력 시 기본 값으로 연결 - 디바이스 이름 오름차순(`nameAsc`)으로 조회합니다.
+
+            * `nameAsc` : 연결 - 디바이스 이름 오름차순
+            * `nameDesc` : 연결 - 디바이스 이름 내림차순
+            * `identifierAsc` : 연결 식별자 오름차순
+            * `identifierDesc` : 연결 식별자 내림차순
+            * `createdAtAsc` : 기기 생성일 내림차순
+            * `createdAtDesc` : 기기 생성일 내림차순
+          schema:
+            type: string
+            enum:
+              - nameAsc
+              - nameDesc
+              - identifierAsc
+              - identifierDesc
+              - createdAtAsc
+              - createdAtDesc
+      responses:
+        200:
+          $ref: "#/Response/UserDevices"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER408'
+                  - $ref: '#/ErrorCode/SERVICEUSER409'
+                  - $ref: '#/ErrorCode/SERVICEUSER410'
+                  - $ref: '#/ErrorCode/SERVICEUSER411'
+                  - $ref: '#/ErrorCode/SERVICEUSER412'
+                  - $ref: '#/ErrorCode/SERVICEUSER413'
+                discriminator:
+                  mapping:
+                    SERVICEUSER408: '#/ErrorCode/SERVICEUSER408'
+                    SERVICEUSER409: '#/ErrorCode/SERVICEUSER409'
+                    SERVICEUSER410: '#/ErrorCode/SERVICEUSER410'
+                    SERVICEUSER411: '#/ErrorCode/SERVICEUSER411'
+                    SERVICEUSER412: '#/ErrorCode/SERVICEUSER412'
+                    SERVICEUSER413: '#/ErrorCode/SERVICEUSER413'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/count:
+    #####################################################
+    ### [GET] /services/{serviceId}/users/count :: Get a user count
+    #####################################################
+    get:
+      tags:
+        - Service Users
+      summary: Get a user count
+      description: |
+        서비스 사용자 수를 조회합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          $ref: "#/Response/ServiceUserCount"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /services/{serviceId}/users/statistics:
+    #####################################################
+    ### [GET] /services/{serviceId}/users/statistics :: Get a user count statistics
+    #####################################################
+    get:
+      tags:
+        - Service Users
+      summary: Get a user count statistics
+      description: |
+        서비스 사용자 수의 통계를 조회합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: type
+          description: |
+            사용자 타입입니다.
+
+            * `total` : 모든 사용자
+            * `new` : 새로 가입한 사용자
+            * `withdrawal` : 탈퇴한 사용자
+          required: true
+          schema:
+            type: string
+            enum:
+              - total
+              - new
+              - withdrawal
+        - in: query
+          name: startDate
+          description: "조회 시작 일입니다. (YYYY-MM-DD 형식)"
+          required: true
+          schema:
+            type: string
+            format: date
+            pattern: 'YYYY-MM-DD'
+        - in: query
+          name: endDate
+          description: "조회 종료 일입니다. (YYYY-MM-DD 형식)"
+          required: true
+          schema:
+            type: string
+            format: date
+            pattern: 'YYYY-MM-DD'
+        - in: query
+          name: interval
+          required: true
+          description: |
+            통계 주기입니다.
+
+            * `1h` : 일간(시간 단위)
+            * `1d` : 주간(일 단위)
+            * `1w` : 월간(주 단위)
+            * `1M` : 연간(월 단위)
+          schema:
+            type: string
+            enum:
+              - 1h
+              - 1d
+              - 1w
+              - 1M
+      responses:
+        200:
+          $ref: "#/Response/Statistics"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/SERVICEUSER408'
+                  - $ref: '#/ErrorCode/SERVICEUSER409'
+                  - $ref: '#/ErrorCode/SERVICEUSER415'
+                  - $ref: '#/ErrorCode/SERVICEUSER416'
+                  - $ref: '#/ErrorCode/SERVICEUSER417'
+                  - $ref: '#/ErrorCode/SERVICEUSER418'
+                  - $ref: '#/ErrorCode/SERVICEUSER419'
+                  - $ref: '#/ErrorCode/SERVICEUSER420'
+                discriminator:
+                  mapping:
+                    SERVICEUSER408: '#/ErrorCode/SERVICEUSER408'
+                    SERVICEUSER409: '#/ErrorCode/SERVICEUSER409'
+                    SERVICEUSER415: '#/ErrorCode/SERVICEUSER415'
+                    SERVICEUSER416: '#/ErrorCode/SERVICEUSER416'
+                    SERVICEUSER417: '#/ErrorCode/SERVICEUSER417'
+                    SERVICEUSER418: '#/ErrorCode/SERVICEUSER418'
+                    SERVICEUSER419: '#/ErrorCode/SERVICEUSER419'
+                    SERVICEUSER420: '#/ErrorCode/SERVICEUSER420'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/links:
+    #####################################################
+    ### [GET] /iot/links :: Get link list
+    #####################################################
+    get:
+      tags:
+        - Link
+      summary: "Get link list"
+      description: |
+        연결 리스트를 반환합니다.
+
+        offset 파라미터로 요청 시작 아이템 위치를 지정할 수 있습니다. pagenation의 페이지 번호와 limit으로 offset을 구할 수 있습니다. 또한 limit 파라미터로 요청 아이템 갯수를 설정할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 30
+            multipleOf: 10
+        - in: query
+          name: type
+          description: "연결 유형입니다. GatewayLink인 경우 0006을, DirectLink인 경우 0007 값을 줍니다. 항목이 없는 경우 전체 대상으로 조회합니다."
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: searchText
+          description: "검색단어입니다. 연결 이름 혹은 연결 식별자가 될 수 있습니다. 항목이 없는 경우 전체 대상으로 조회합니다."
+          required: false
+          schema:
+            type: string
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            GET /v2/iot/links HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+            Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOiJ0ZXN0QHNpbXBsYXRmb3JtLmNvbSIsInNjb3BlIjoiMDAwMSIsImlhdCI6MTUzODAyOTY4MiwiZXhwIjoxNTQ4ODI5NjgyfQ.wcik-OrFoI95RXxSGMYaeBq_osybmvYAbZ_7dXTsAY8
+        - lang: cURL
+          source: |
+            curl -X GET \
+              'http://localhost:9000/v2/iot/links?offset=0&limit=30' \
+              -H 'cache-control: no-cache' \
+              -H 'Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOiJ0ZXN0QHNpbXBsYXRmb3JtLmNvbSIsInNjb3BlIjoiMDAwMSIsImlhdCI6MTUzODAyOTY4MiwiZXhwIjoxNTQ4ODI5NjgyfQ.wcik-OrFoI95RXxSGMYaeBq_osybmvYAbZ_7dXTsAY8'
+      responses:
+        200:
+          $ref: "#/Response/Link"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/LINKS401'
+                  - $ref: '#/ErrorCode/LINKS402'
+                  - $ref: '#/ErrorCode/LINKS403'
+                discriminator:
+                  mapping:
+                    LINKS401: '#/ErrorCode/LINKS401'
+                    LINKS402: '#/ErrorCode/LINKS402'
+                    LINKS403: '#/ErrorCode/LINKS403'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [POST] /iot/links :: Add a new link
+    #####################################################
+    post:
+      tags:
+        - Link
+      summary: "Add a new link"
+      description: "연결을 새로 추가합니다."
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceId
+                - name
+                - type
+                - protocol
+                - identificationPolicy
+                - identifier
+              properties:
+                serviceId:
+                  type: string
+                  description: "서비스 아이디입니다."
+                  example: "F5B64CF7C9BE433E86B83A870501DFC0"
+                name:
+                  type: string
+                  description: "연결 이름입니다."
+                  example: "안방 등"
+                type:
+                  type: string
+                  description: "연결 유형입니다."
+                  enum:
+                    - 0006 (GatewayLink)
+                    - 0007 (DirectLink)
+                  example: "0007"
+                protocol:
+                  type: string
+                  description: "통신 프로토콜입니다."
+                  enum:
+                    - MQTTS
+                    - MQTT
+                    - UDP
+                    - TCP/IP
+                    - HTTPS
+                    - HTTP
+                    - SmartThings
+                  example: "MQTTS"
+                identifier:
+                  type: string
+                  description: "연결에 대한 식별자입니다. 맥 주소가 될 수도 있고 디바이스 자체 ID, 서버에서 발급한 키 값이 될 수도 있습니다."
+                  example: "12:34:56:78:90:ab"
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            POST /v2/iot/links HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            cache-control: no-cache
+
+            {
+            "serviceId": "F5B64CF7C9BE433E86B83A870501DFC0",
+            "name": "안방 등",
+            "type": "0007",
+            "protocol": "MQTTS",
+            "identifier": "12:34:56:78:90:ab"
+            }
+        - lang: cURL
+          source: |
+            curl -X POST \
+              http://localhost:9000/v2/iot/links \
+              -H 'Content-Type: application/json' \
+              -H 'cache-control: no-cache' \
+              -d '{
+              "serviceId": "F5B64CF7C9BE433E86B83A870501DFC0",
+              "name": "안방 등",
+              "type": "0007",
+              "protocol": "MQTTS",
+              "identifier": "12:34:56:78:90:ab"
+              }'
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  insertId:
+                    type: string
+                    description: "Added device ID."
+                    example: "B6B4B55940B14163925B3F14A4F13DB4"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/LINKS401'
+                  - $ref: '#/ErrorCode/LINKS405'
+                  - $ref: '#/ErrorCode/LINKS406'
+                  - $ref: '#/ErrorCode/LINKS407'
+                  - $ref: '#/ErrorCode/LINKS408'
+                  - $ref: '#/ErrorCode/LINKS413'
+                discriminator:
+                  mapping:
+                    LINKS401: '#/ErrorCode/LINKS401'
+                    LINKS405: '#/ErrorCode/LINKS405'
+                    LINKS406: '#/ErrorCode/LINKS406'
+                    LINKS407: '#/ErrorCode/LINKS407'
+                    LINKS408: '#/ErrorCode/LINKS408'
+                    LINKS413: '#/ErrorCode/LINKS413'
+        401:
+          $ref: "#/StatusCode/401"
+  /iot/links/devices:
+    #####################################################
+    ### [POST] /iot/links/devices :: Add a new device
+    #####################################################
+    post:
+      tags:
+        - Link
+      summary: "Add a new device (link + device)"
+      description: "연결과 디바이스를 함께 새로 추가합니다. 주로 Direct Link 등록 시 사용됩니다."
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - serviceId
+                - linkName
+                - type
+                - protocol
+                - identificationPolicy
+                - identifier
+                - deviceName
+                - cloudDeviceId
+                - serviceCode
+              properties:
+                serviceId:
+                  type: string
+                  description: "서비스 아이디입니다."
+                  example: "F5B64CF7C9BE433E86B83A870501DFC0"
+                linkName:
+                  type: string
+                  description: "연결 이름입니다."
+                  example: "안방 등"
+                type:
+                  type: string
+                  description: "연결 유형입니다."
+                  enum:
+                    - 0006 (GatewayLink)
+                    - 0007 (DirectLink)
+                  example: "0007"
+                protocol:
+                  type: string
+                  description: "통신 프로토콜입니다."
+                  enum:
+                    - MQTTS
+                    - MQTT
+                    - UDP
+                    - TCP/IP
+                    - HTTPS
+                    - HTTP
+                    - SmartThings
+                  example: "MQTTS"
+                identificationPolicy:
+                  type: string
+                  description: 식별 정책입니다.
+                  enum:
+                    - 1 (mac address)
+                    - 2 (device id)
+                    - 3 (서버에서 키 발급)
+                identifier:
+                  type: string
+                  description: "연결에 대한 식별자입니다. 맥 주소가 될 수도 있고 디바이스 자체 ID, 서버에서 발급한 키 값이 될 수도 있습니다."
+                  example: "12:34:56:78:90:ab"
+                deviceName:
+                  type: string
+                  description: "디바이스 이름입니다."
+                  example: "안방 등 디바이스"
+                cloudDeviceId:
+                  type: string
+                  description: "클라우드 디바이스 아이디입니다."
+                  example: "0E2F89AE7E3B482FA3C02DD5B7D5DBAC"
+                serviceCode:
+                  type: string
+                  description: "서비스 코드입니다."
+                  example: "JTAE1QH9"
+                address:
+                  type: string
+                  description: "기기가 위치한 주소입니다."
+                  example: "서울특별시 금천구 가산디지털1로 226"
+                locationName:
+                  type: string
+                  description: "기기 위치 이름입니다."
+                  example: "우리 회사"
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            POST /v2/iot/links/devices HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            cache-control: no-cache
+
+            {
+            "serviceId": "F5B64CF7C9BE433E86B83A870501DFC0",
+            "linkName": "안방 등",
+            "type": "0007",
+            "protocol": "MQTTS",
+            "identificationPolicy": "3",
+            "identifier": 12:34:56:78:90:ab",
+            "deviceName": "안방 등 디바이스",
+            "cloudDeviceId": cloudDeviceId,
+            "serviceCode": "JTAE1QH9",
+            "address": "서울특별시 금천구 가산디지털1로 226",
+            "locationName": "우리 회사"
+            }
+        - lang: cURL
+          source: |
+            curl -X POST \
+              http://localhost:9000/v2/iot/links/devices \
+              -H 'Content-Type: application/json' \
+              -H 'cache-control: no-cache' \
+              -d '{
+              "serviceId": "F5B64CF7C9BE433E86B83A870501DFC0",
+              "linkName": "안방 등",
+              "type": "0007",
+              "protocol": "MQTTS",
+              "identificationPolicy": "3",
+              "identifier": 12:34:56:78:90:ab",
+              "deviceName": "안방 등 디바이스",
+              "cloudDeviceId": cloudDeviceId,
+              "serviceCode": "JTAE1QH9",
+              "address": "서울특별시 금천구 가산디지털1로 226",
+              "locationName": "우리 회사"
+              }'
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  insertLinkId:
+                    type: string
+                    description: "Added link ID."
+                    example: "2E60E9D473684B08A93801C532359791"
+                  insertDeivceId:
+                    type: string
+                    description: "Added device ID."
+                    example: "B6B4B55940B14163925B3F14A4F13DB4"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/LINKS401'
+                  - $ref: '#/ErrorCode/LINKS409'
+                  - $ref: '#/ErrorCode/LINKS406'
+                  - $ref: '#/ErrorCode/LINKS407'
+                  - $ref: '#/ErrorCode/LINKS408'
+                  - $ref: '#/ErrorCode/LINKS410'
+                  - $ref: '#/ErrorCode/LINKS411'
+                  - $ref: '#/ErrorCode/LINKS412'
+                  - $ref: '#/ErrorCode/LINKS413'
+                discriminator:
+                  mapping:
+                    LINKS401: '#/ErrorCode/LINKS401'
+                    LINKS409: '#/ErrorCode/LINKS409'
+                    LINKS406: '#/ErrorCode/LINKS406'
+                    LINKS407: '#/ErrorCode/LINKS407'
+                    LINKS408: '#/ErrorCode/LINKS408'
+                    LINKS410: '#/ErrorCode/LINKS410'
+                    LINKS411: '#/ErrorCode/LINKS411'
+                    LINKS412: '#/ErrorCode/LINKS412'
+                    LINKS413: '#/ErrorCode/LINKS413'
+        401:
+          $ref: "#/StatusCode/401"
+  /iot/links/{linkId}:
+    #####################################################
+    ### [GET] /iot/links/{linkId} :: Get a link by id
+    #####################################################
+    get:
+      tags:
+        - Link
+      summary: "Get a link by id"
+      description: "하나의 연결에 대한 정보를 반환합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: linkId
+          description: "연결 아이디"
+          required: true
+          schema:
+            type: string
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            GET /v2/iot/link/ECB8DE2239E24335BB71B432DFA67F1E HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+        - lang: cURL
+          source: |
+            curl -X GET \
+              http://localhost:9000/v2/iot/link/ECB8DE2239E24335BB71B432DFA67F1E \
+              -H 'cache-control: no-cache'
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Link"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/LINKS404'
+                discriminator:
+                  mapping:
+                    LINKS404: '#/ErrorCode/LINKS404'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [PATCH] /iot/links/{linkId} :: Update link
+    #####################################################
+    patch:
+      tags:
+        - Link
+      summary: "Update link"
+      description: "연결 정보를 수정합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: linkId
+          description: "연결 아이디"
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: "연결 이름입니다."
+                  example: "TEST LINK"
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            PATCH /v2/iot/links/ECB8DE2239E24335BB71B432DFA67F1E HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            cache-control: no-cache
+            {
+              "name": "TEST LINK"
+            }
+        - lang: cURL
+          source: |
+            curl -X PATCH \
+            http://localhost:9000/v2/iot/links/ECB8DE2239E24335BB71B432DFA67F1E \
+            -H 'Content-Type: application/json' \
+            -H 'cache-control: no-cache' \
+            -d '{
+                  "name": "TEST LINK"
+                }'
+      responses:
+        204:
+          $ref: '#/StatusCode/204'
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/LINKS405'
+                  - $ref: '#/ErrorCode/LINKS408'
+                discriminator:
+                  mapping:
+                    LINKS405: '#/ErrorCode/LINKS405'
+                    LINKS408: '#/ErrorCode/LINKS408'
+        401:
+          $ref: '#/StatusCode/401'
+        404:
+          $ref: '#/StatusCode/404'
+    #####################################################
+    ### [DELETE] /iot/links/{linkId} :: Delete link
+    #####################################################
+    delete:
+      tags:
+        - Link
+      summary: "Delete link"
+      description: "연결을 삭제합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: linkId
+          description: "연결 아이디"
+          required: true
+          schema:
+            type: string
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            DELETE /v2/iot/links/ECB8DE2239E24335BB71B432DFA67F1E HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+        - lang: cURL
+          source: |
+            curl -X DELETE \
+              http://localhost:9000/v2/iot/links/ECB8DE2239E24335BB71B432DFA67F1E \
+              -H 'cache-control: no-cache'
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/LINKS404'
+                discriminator:
+                  mapping:
+                    LINKS404: '#/ErrorCode/LINKS404'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/link/{linkId}/connection:
+  #####################################################
+  ### [GET] /iot/links/{linkId}/connection :: 연결 확인
+  #####################################################
+    get:
+      tags:
+        - Link
+      summary: "Get the connection status."
+      description: "연결 상태를 확인합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: linkId
+          description: "연결 아이디"
+          required: true
+          schema:
+            type: string
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            GET /v2/iot/links/ECB8DE2239E24335BB71B432DFA67F1E/connection HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+        - lang: cURL
+          source: |
+            curl -X GET \
+              http://localhost:9000/v2/iot/links/ECB8DE2239E24335BB71B432DFA67F1E/connection \
+              -H 'cache-control: no-cache'
+      responses:
+        200:
+          description: "Successful operation but No content returned."
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/devices:
+    #####################################################
+    ### [GET] /iot/devices :: Get device list
+    #####################################################
+    get:
+      tags:
+        - Device
+      summary: "Get device list"
+      description: |
+        디바이스 리스트를 반환합니다.
+
+        offset 파라미터로 요청 시작 아이템 위치를 지정할 수 있습니다. pagenation의 페이지 번호와 limit으로 offset을 구할 수 있습니다. 또한 limit 파라미터로 요청 아이템 갯수를 설정할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: linkId
+          description: "연결 아이디"
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 30
+            exclusiveMinimum: true
+            minimum: 0
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            GET /v2/iot/devices HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+        - lang: cURL
+          source: |
+            curl -X GET \
+              'http://localhost:9000/v2/iot/devices?serviceId=F5B64CF7C9BE433E86B83A870501DFC0&offset=0&limit=30' \
+              -H 'cache-control: no-cache'
+      responses:
+        200:
+          "$ref": "#/Response/Device"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/DEVICES401'
+                  - $ref: '#/ErrorCode/DEVICES402'
+                  - $ref: '#/ErrorCode/DEVICES403'
+                discriminator:
+                  mapping:
+                    DEVICES401: '#/ErrorCode/DEVICES401'
+                    DEVICES402: '#/ErrorCode/DEVICES402'
+                    DEVICES403: '#/ErrorCode/DEVICES403'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [POST] /iot/devices :: Add a new device
+    #####################################################
+    post:
+      tags:
+        - Device
+      summary: "Add a new device"
+      description: 디바이스를 새로 추가합니다.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/Parameter/device_info"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  insertId:
+                    type: string
+                    description: "Added device ID."
+                    example: "B6B4B55940B14163925B3F14A4F13DB4"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/DEVICES401'
+                  - $ref: '#/ErrorCode/DEVICES402'
+                  - $ref: '#/ErrorCode/DEVICES403'
+                discriminator:
+                  mapping:
+                    DEVICES401: '#/ErrorCode/DEVICES401'
+                    DEVICES402: '#/ErrorCode/DEVICES402'
+                    DEVICES403: '#/ErrorCode/DEVICES403'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/devices/{deviceId}:
+    #####################################################
+    ### [GET] /iot/devices/{deviceId} :: Get a device by id
+    #####################################################
+    get:
+      tags:
+        - Device
+      summary: "Get a device by id"
+      description: "하나의 디바이스 정보를 가져옵니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: deviceId
+          description: "디바이스 아이디"
+          required: true
+          schema:
+            type: string
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            curl -X GET \
+              http://localhost:9000/v2/iot/devices/C_a000000000a \
+              -H 'cache-control: no-cache'
+        - lang: cURL
+          source: |
+            curl -X GET \
+              'http://localhost:9000/v2/iot/devices?offset=0&limit=30' \
+              -H 'cache-control: no-cache'
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Device"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [PATCH] /iot/devices/{deviceId} :: Update device
+    #####################################################
+    patch:
+      tags:
+        - Device
+      summary: "Update device"
+      description: "디바이스 정보를 수정합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: deviceId
+          description: "디바이스 아이디"
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+              properties:
+                name:
+                  type: string
+                  description: "디바이스 이름입니다."
+                  example: "TEST DEVICE"
+                identifier:
+                  type: string
+                  description: "디바이스 식별자입니다."
+                  example: "0038"
+              discriminator:  # select one deviceType.
+                propertyName: deviceType
+                mapping:
+                  gateway_link: '#/Parameter/gateway_link_update'
+                  bridge_link: '#/Parameter/bridge_link_update'
+                  direct_link: '#/Parameter/direct_link_update'
+                  lpwa_link: '#/Parameter/lpwa_link_update'
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/DEVICES404'
+                discriminator:
+                  mapping:
+                    DEVICES404: '#/ErrorCode/DEVICES404'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [DELETE] /iot/devices/{deviceId} :: Delete device
+    #####################################################
+    delete:
+      tags:
+        - Device
+      summary: "Delete device"
+      description: "디바이스를 삭제합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: deviceId
+          description: "디바이스 아이디"
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/devices/{deviceId}/control:
+    #####################################################
+    ### [POST] /iot/devices/{deviceId}/control :: Control device
+    #####################################################
+    post:
+      tags:
+        - Device
+      summary: Control device
+      description: "디바이스에 제어 명령을 전송합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: deviceId
+          description: "디바이스 아이디"
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - controlType
+                - userInterface
+                - unitNumber
+                - controlValue
+              properties:
+                controlType:
+                  type: string
+                  description: 제어 유형입니다.
+                  enum:
+                    - userControl (사용자가 앱에서 제어하는 경우)
+                    - ruleControl (시스템에서 스케줄러에 의해 제어하는 경우)
+                  example: "userControl"
+                userInterface:
+                  type: string
+                  description: "제어를 요청하는 사용자 인터페이스 명입니다. App 명을 넣어주시면 됩니다."
+                  example: "파커스 오브라이트앱"
+                unitNumber:
+                  type: string
+                  description: "유닛 번호입니다."
+                  example: "F5B64CF7C9BE433E86B83A870501DFC0"
+                controlValue:
+                  type: string
+                  description: "제어 값입니다."
+                  example: "F5B64CF7C9BE433E86B83A870501DFC0"
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            POST /v2/iot/devices/ECB8DE2239E24335BB71B432DFA67F1E/control HTTP/1.1
+            Host: localhost
+            cache-control: no-cache
+        - lang: cURL
+          source: |
+            curl -X POST \
+              'http://localhost:9000/v2/iot/devices/ECB8DE2239E24335BB71B432DFA67F1E/control' \
+              -H 'cache-control: no-cache'
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: string
+                    description: "제어 결과입니다. 1이명 성공, 0이면 실패입니다. 성공 시 자동으로 제어에 대한 타임라인이 추가됩니다."
+                    example: "1"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/DEVICES406'
+                  - $ref: '#/ErrorCode/DEVICES407'
+                  - $ref: '#/ErrorCode/DEVICES408'
+                  - $ref: '#/ErrorCode/DEVICES409'
+                discriminator:
+                  mapping:
+                    DEVICES406: '#/ErrorCode/DEVICES406'
+                    DEVICES407: '#/ErrorCode/DEVICES407'
+                    DEVICES408: '#/ErrorCode/DEVICES408'
+                    DEVICES409: '#/ErrorCode/DEVICES409'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/clouddevices:
+    #####################################################
+    ### [GET] /iot/clouddevices :: Get cloud device list
+    #####################################################
+    get:
+      tags:
+        - Cloud device
+      summary: Get cloud device list
+      description: |
+        클라우드 디바이스 목록을 조회하거나 검색할 수 있습니다.
+
+        manufacturer 파라미터로 제조사를 검색하고 searchText 파라미터로 제품명이나 모델명을 검색할 수 있습니다. 모든 값을 검색하려면 해당 파라미터를 빈 값으로 전송합니다.
+
+        offset 파라미터로 요청 시작 아이템 위치를 지정할 수 있습니다. pagenation의 페이지 번호와 limit으로 offset을 구할 수 있습니다. 또한 limit 파라미터로 요청 아이템 갯수를 설정할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: cloudPublic
+          description: "클라우드 디바이스의 배포 상태입니다."
+          required: true
+          schema:
+            type: string
+            enum:
+              - all (내가 등록거나 클라우드에 배포된 클라우드 디)
+              - ownerAll (내가 등록한 모든 클라우드 디바이스)
+              - ownerPublic (내가 등록하고 클라우드에 배포한 클라우드 디바이스)
+              - ownerPrivate (내가 등록하고 클라우드에 배포하지 않은 클라우드 디바이스)
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 30
+            exclusiveMinimum: true
+            minimum: 0
+        - in: query
+          name: manufacturer
+          description: "제조사입니다. 전체 검색인 경우 빈 값이 들어갑니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: searchText
+          description: "검색어입니다. 검색어가 없으면 빈 값이 들어갑니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: orderBy
+          description: |
+            정렬방식입니다. 위의 값 중 하나이어야 합니다. 항목이 없거나 유효하지 않는 값인 경우 최신순으로 반환합니다.
+          schema:
+            type: string
+            enum:
+              - createdAtAsc (오래된순)
+              - createdAtDesc (최신순: 기본값)
+              - productNameAsc (제품 이름 오름차순)
+              - productNameDesc (제품 이름 내림차순)
+            example: createdAtDesc
+      responses:
+        200:
+          $ref: "#/Response/CloudDevice"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/CLOUDDEVICES401'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES402'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES403'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES404'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES405'
+                discriminator:
+                  mapping:
+                    CLOUDDEVICES401: '#/ErrorCode/CLOUDDEVICES401'
+                    CLOUDDEVICES402: '#/ErrorCode/CLOUDDEVICES402'
+                    CLOUDDEVICES403: '#/ErrorCode/CLOUDDEVICES403'
+                    CLOUDDEVICES404: '#/ErrorCode/CLOUDDEVICES404'
+                    CLOUDDEVICES405: '#/ErrorCode/CLOUDDEVICES405'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [POST] /iot/clouddevices :: Add new cloud device
+    #####################################################
+    post:
+      tags:
+        - Cloud device
+      summary: Add new cloud device
+      description: |
+        클라우드 디바이스를 생성합니다.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              $ref: "#/Parameter/cloud_device_info"
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  insertId:
+                    type: string
+                    description: "Added cloud device ID."
+                    example: "B6B4B55940B14163925B3F14A4F13DB4"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/CLOUDDEVICES404'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES406'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES407'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES408'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES409'
+                discriminator:
+                  mapping:
+                    CLOUDDEVICES404: '#/ErrorCode/CLOUDDEVICES404'
+                    CLOUDDEVICES406: '#/ErrorCode/CLOUDDEVICES406'
+                    CLOUDDEVICES407: '#/ErrorCode/CLOUDDEVICES407'
+                    CLOUDDEVICES408: '#/ErrorCode/CLOUDDEVICES408'
+                    CLOUDDEVICES409: '#/ErrorCode/CLOUDDEVICES409'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/clouddevices/{cloudDeviceId}:
+    #####################################################
+    ### [GET] /iot/clouddevices/{cloudDeviceId} :: Get a cloud device
+    #####################################################
+    get:
+      tags:
+        - Cloud device
+      summary: Get a cloud device
+      description: |
+        클라우드 디바이스 정보를 반환합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: cloudDeviceId
+          description: "클라우드 디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/CloudDevice"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [PUT] /iot/clouddevices/{cloudDeviceId} :: Update a cloud device
+    #####################################################
+    put:
+      tags:
+        - Cloud device
+      summary: Update a cloud device
+      description: |
+        클라우드 디바이스 정보를 업데이트합니다.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - productName
+                - modelName
+                - manufacturer
+                - deviceType
+                - description
+                - createdAttachments
+                - deletedAttachments
+              properties:
+                productName:
+                  type: string
+                  description: "제품 명입니다."
+                  example: "안방 등 70W"
+                modelName:
+                  type: string
+                  description: "모델 명입니다."
+                  example: "OBRIGHTXB-2"
+                manufacturer:
+                  type: string
+                  description: "제조사입니다."
+                  example: "테스트기업"
+                deviceType:
+                  type: string
+                  description: |
+                    클라우드 연결 유형입니다.
+                    * `0006` : GatewayLink
+                    * `0007` : DirectLink
+                  example: null
+                description:
+                  type: string
+                  description: "디바이스 설명입니다."
+                  example: "IoT용 전등입니다."
+                files:
+                  description: "제품 이미지 파일리스트입니다."
+                  type: array
+                  items:
+                    type: string
+                    format: File
+                createdAttachments:
+                  description: "첨부 파일리스트입니다."
+                  type: array
+                  items:
+                    type: string
+                    format: File
+                deletedAttachments:
+                  description: "삭제된 첨부 파일리스트입니다."
+                  type: array
+                  items:
+                    type: string
+                  example: []
+            examples:
+              productName:
+                value: "안방 등 70W"
+              modelName:
+                type: string
+                description: "모델 명입니다."
+                value: "OBRIGHTXB-2"
+              manufacturer:
+                type: string
+                description: "제조사입니다."
+                value: "테스트기업"
+              description:
+                type: string
+                description: "디바이스 설명입니다."
+                value: "IoT용 전등입니다."
+              deletedAttachments:
+                value: "[]"
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/CloudDevice"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/CLOUDDEVICES404'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES406'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES407'
+                  - $ref: '#/ErrorCode/CLOUDDEVICES408'
+                discriminator:
+                  mapping:
+                    CLOUDDEVICES404: '#/ErrorCode/CLOUDDEVICES404'
+                    CLOUDDEVICES406: '#/ErrorCode/CLOUDDEVICES406'
+                    CLOUDDEVICES407: '#/ErrorCode/CLOUDDEVICES407'
+                    CLOUDDEVICES408: '#/ErrorCode/CLOUDDEVICES408'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [DELETE] /iot/clouddevices/{cloudDeviceId} :: Delete a cloud device
+    #####################################################
+    delete:
+      tags:
+        - Cloud device
+      summary: Delete a cloud device
+      description: |
+        클라우드 디바이스를 삭제합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: cloudDeviceId
+          description: "클라우드 디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/clouddevices/{cloudDeviceId}/publication:
+    #####################################################
+    ### [POST] /iot/clouddevices/{cloudDeviceId}/publication :: Publish cloud device
+    #####################################################
+    post:
+      tags:
+        - Cloud device
+      summary: Publish cloud device
+      description: |
+        클라우드 디바이스를 클라우드에 배포합니다. 그러면 다른 사용자도 해당 클라우드 디바이스를 사용할 수 있게 됩니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: cloudDeviceId
+          description: "클라우드 디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  result:
+                    type: boolean
+                    description: "성공 여부"
+                    example: 1
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/clouddevices/{cloudDeviceId}/units:
+    #####################################################
+    ### [GET] /iot/clouddevices/{cloudDeviceId}/units :: Get unit list
+    #####################################################
+    get:
+      tags:
+        - Cloud device
+      summary: Get unit list
+      description: |
+        유닛 리스트를 반환합니다.
+
+        offset 파라미터로 요청 시작 아이템 위치를 지정할 수 있습니다. pagenation의 페이지 번호와 limit으로 offset을 구할 수 있습니다. 또한 limit 파라미터로 요청 아이템 갯수를 설정할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: cloudDeviceId
+          description: "클라우드 디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 30
+            exclusiveMinimum: true
+            minimum: 0
+        - in: query
+          name: searchText
+          description: "검색어입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: orderBy
+          description: "정렬방식입니다. 위의 값 중 하나이어야 합니다."
+          required: true
+          schema:
+            type: string
+            enum:
+              - numberOrderByAsc (유닛 번호 오름차순)
+              - numberOrderByDesc (유닛 번호 내림차순)
+              - nameOrderByAsc (이름 오름차순)
+              - nameOrderByDesc (이름 내림차순)
+            example: numberOrderByAsc
+      responses:
+        200:
+          $ref: "#/Response/Unit"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/CLOUDUNITS401'
+                  - $ref: '#/ErrorCode/CLOUDUNITS402'
+                  - $ref: '#/ErrorCode/CLOUDUNITS403'
+                  - $ref: '#/ErrorCode/CLOUDUNITS404'
+                discriminator:
+                  mapping:
+                    CLOUDUNITS401: '#/ErrorCode/CLOUDUNITS401'
+                    CLOUDUNITS402: '#/ErrorCode/CLOUDUNITS402'
+                    CLOUDUNITS403: '#/ErrorCode/CLOUDUNITS403'
+                    CLOUDUNITS404: '#/ErrorCode/CLOUDUNITS404'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [POST] /iot/clouddevices/{cloudDeviceId}/units :: Add new unit list
+    #####################################################
+    post:
+      tags:
+        - Cloud device
+      summary: Add new unit list
+      description: |
+        하나 이상의 유닛을 생성합니다.
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                units:
+                  description: "유닛 정보 리스트입니다."
+                  required: true
+                  type: array
+                  items:
+                    $ref: "#/Parameter/unit_info"
+      responses:
+        201:
+          $ref: "#/StatusCode/201"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/CLOUDUNITS405'
+                  - $ref: '#/ErrorCode/CLOUDUNITS406'
+                  - $ref: '#/ErrorCode/CLOUDUNITS407'
+                  - $ref: '#/ErrorCode/CLOUDUNITS408'
+                  - $ref: '#/ErrorCode/CLOUDUNITS409'
+                discriminator:
+                  mapping:
+                    CLOUDUNITS405: '#/ErrorCode/CLOUDUNITS405'
+                    CLOUDUNITS406: '#/ErrorCode/CLOUDUNITS406'
+                    CLOUDUNITS407: '#/ErrorCode/CLOUDUNITS407'
+                    CLOUDUNITS408: '#/ErrorCode/CLOUDUNITS408'
+                    CLOUDUNITS409: '#/ErrorCode/CLOUDUNITS409'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/clouddevices/{cloudDeviceId}/units/{unitNumber}:
+    #####################################################
+    ### [GET] /iot/clouddevices/{cloudDeviceId}/units/{unitNumber} :: Get a unit
+    #####################################################
+    get:
+      tags:
+        - Cloud device
+      summary: Get a unit
+      description: |
+        유닛 번호에 해당하는 유닛 정보를 가져옵니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: cloudDeviceId
+          description: "클라우드 디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: unitNumber
+          description: "유닛 번호입니다."
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: "Successful operation."
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Unit"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [PATH] /iot/clouddevices/{cloudDeviceId}/units/{unitNumber} :: Update unit
+    #####################################################
+    patch:
+      tags:
+        - Cloud device
+      summary: Update unit
+      description: |
+        유닛 정보를 업데이트합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: cloudDeviceId
+          description: "클라우드 디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: unitNumber
+          description: "유닛 번호입니다."
+          required: true
+          schema:
+            type: string
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - name
+                - commandType
+              properties:
+                name:
+                  description: 유닛 정보 리스트입니다.
+                  type: string
+                  example: 온도
+                commandType:
+                  type: string
+                  description: 유닛 용도입니다.
+                  enum: [1 (조회), 2 (제어), 3 (조회/제어 모두)]
+                  example: 1
+                type:
+                  type: string
+                  description: 유닛 종류입니다.
+                  example: 습도센서
+                measure:
+                  type: string
+                  description: 유닛 데이터에 대한 단위입니다.
+                  example: ˚C
+                description:
+                  type: string
+                  description: 유닛에 대한 설명입니다.
+                  example: 지온을 재는 온도센서입니다.
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        400:
+          description: "Bad request"
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/CLOUDUNITS407'
+                  - $ref: '#/ErrorCode/CLOUDUNITS409'
+                discriminator:
+                  mapping:
+                    CLOUDUNITS407: '#/ErrorCode/CLOUDUNITS407'
+                    CLOUDUNITS409: '#/ErrorCode/CLOUDUNITS409'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [POST] /iot/clouddevices/{cloudDeviceId}/units/deletion :: Delete a unit
+    #####################################################
+    post:
+      tags:
+        - Cloud device
+      summary: Delete units
+      description: |
+        유닛 목록을 삭제합니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: cloudDeviceId
+          description: "클라우드 디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: path
+          name: unitNumbers
+          description: "유닛 번호 배열입니다."
+          required: true
+          schema:
+            type: array
+            items:
+              type: number
+      responses:
+        204:
+          $ref: "#/StatusCode/204"
+        400:
+          description: "Bad Request."
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/CLOUDUNITS410'
+                  - $ref: '#/ErrorCode/CLOUDUNITS411'
+                discriminator:
+                  mapping:
+                    CLOUDUNITS410: '#/ErrorCode/CLOUDUNITS410'
+                    CLOUDUNITS411: '#/ErrorCode/CLOUDUNITS411'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /iot/timeline:
+    #####################################################
+    ### [GET] /iot/timeline :: Get timeline list
+    #####################################################
+    get:
+      tags:
+        - Timeline
+      summary: Get timeline list
+      description: |
+        타임라인 리스트를 반환합니다.
+
+        offset 파라미터로 요청 시작 아이템 위치를 지정할 수 있습니다. pagenation의 페이지 번호와 limit으로 offset을 구할 수 있습니다. 또한 limit 파라미터로 요청 아이템 갯수를 설정할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: identifier
+          description: "디바이스 식별자입니다. 디바이스 식별자는 서비스 코드 + '_' + 연결 식별자 로 이루어진 문자열입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점"
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 30
+            exclusiveMinimum: true
+            minimum: 0
+        - in: query
+          name: action
+          description: "행위 키워드입니다. 모든 내역 조회 시 빈문자열 값을 넣습니다."
+          required: true
+          schema:
+            type: string
+            enum: ["cldounIn", "cloudOut", "connectionError", "deviceError", "userControl", "ruleControl"]
+        - in: query
+          name: orderBy
+          description: "정렬 방식. 빈 문자열을 넣으면 기본 값으로 최신내역순으로 조회합니다."
+          required: true
+          schema:
+            type: string
+            default: "desc"
+        - in: query
+          name: startDate
+          description: "조회 시작일입니다. 항목이 없는 경우 모든 내역을 기준으로 조회합니다."
+          required: false
+          schema:
+            type: string
+        - in: query
+          name: endDate
+          description: "조회 종료일입니다. 항목이 없는 경우 모든 내역을 기준으로 조회합니다."
+          required: false
+          schema:
+            type: string
+      responses:
+        200:
+          $ref: "#/Response/Timeline"
+        400:
+          description: "Bad Request."
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/TIMELINE401'
+                  - $ref: '#/ErrorCode/TIMELINE402'
+                  - $ref: '#/ErrorCode/TIMELINE403'
+                  - $ref: '#/ErrorCode/TIMELINE404'
+                  - $ref: '#/ErrorCode/TIMELINE405'
+                  - $ref: '#/ErrorCode/TIMELINE406'
+                  - $ref: '#/ErrorCode/TIMELINE407'
+                discriminator:
+                  mapping:
+                    TIMELINE401: '#/ErrorCode/TIMELINE401'
+                    TIMELINE402: '#/ErrorCode/TIMELINE402'
+                    TIMELINE403: '#/ErrorCode/TIMELINE403'
+                    TIMELINE404: '#/ErrorCode/TIMELINE404'
+                    TIMELINE405: '#/ErrorCode/TIMELINE405'
+                    TIMELINE406: '#/ErrorCode/TIMELINE406'
+                    TIMELINE407: '#/ErrorCode/TIMELINE407'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+    #####################################################
+    ### [POST] /iot/timeline :: Add new timeline
+    #####################################################
+    post:
+      tags:
+        - Timeline
+      summary: Add new timeline
+      description: "타임라인을 새로 추가합니다."
+      security:
+        - BearerAuth: []
+      requestBody:
+        content:
+          application/json:
+            schema: {
+              "$ref": "#/Parameter/Timeline_info"
+            }
+      responses:
+        200:
+          $ref: "#/Response/Timeline"
+        400:
+          description: "Bad Request."
+          content:
+            application/json:
+              schema:
+                oneOf:
+                  - $ref: '#/ErrorCode/TIMELINE401'
+                  - $ref: '#/ErrorCode/TIMELINE404'
+                  - $ref: '#/ErrorCode/TIMELINE408'
+                  - $ref: '#/ErrorCode/TIMELINE409'
+                discriminator:
+                  mapping:
+                    TIMELINE401: '#/ErrorCode/TIMELINE401'
+                    TIMELINE404: '#/ErrorCode/TIMELINE404'
+                    TIMELINE408: '#/ErrorCode/TIMELINE408'
+                    TIMELINE409: '#/ErrorCode/TIMELINE409'
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /data/latest:
+    #####################################################
+    ### [GET] /data/latest :: Get latest device data
+    #####################################################
+    get:
+      tags:
+        - Device Data
+      summary: "Get latest device data"
+      description: "디바이스의 최신 데이터를 조회합니다."
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: path
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: deviceId
+          description: "디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+      x-code-samples:
+        - lang: HTTPS
+          source: |
+            POST /v2/data/latest HTTP/1.1
+            Host: localhost
+            Content-Type: application/json
+            cache-control: no-cache
+            {
+            "serviceId": "0006",
+            "deviceId" ""
+            }
+        - lang: cURL
+          source: |
+            curl -X POST \
+              http://localhost:9000/v2/data/latest \
+              -H 'Content-Type: application/json' \
+              -H 'cache-control: no-cache' \
+              -d '{"serviceId": "0006", "deviceId" ""}'
+      responses:
+        200:
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Unit"
+        400:
+          description: "Bad Request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/StatusCode/BadRequestError"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /data/statistics:
+    #####################################################
+    ### [GET] /data/statistics :: Get statistics data
+    #####################################################
+    get:
+      tags:
+        - Device Data
+      summary: "Get statistics data"
+      description: >
+        디바이스의 데이터에 대한 통계를 조회합니다. 최대 5개의 유닛에 대한 통계 데이터를 조회할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: deviceId
+          description: "디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: unitNumbers
+          description: "유닛 번호입니다. 1,2,3,4,5,... 형식으로 일련의 스트링으로 구성하여 넣습니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: dataType
+          description: "데이터 형식입니다. 다음의 ()안의 경우에 따라 왼쪽의 문자열을 넣습니다."
+          required: true
+          schema:
+            type: string
+            enum: [avg (평균), min (최저), max (최고), sum (누적)]
+        - in: query
+          name: startDate
+          description: "조회 시작 일입니다. (YYYY-MM-DD 형식)"
+          required: true
+          schema:
+            type: string
+            format: date
+            pattern: 'YYYY-MM-DD'
+        - in: query
+          name: endDate
+          description: "조회 종료 일입니다. (YYYY-MM-DD 형식)"
+          required: true
+          schema:
+            type: string
+            format: date
+            pattern: 'YYYY-MM-DD'
+        - in: query
+          name: interval
+          description: "데이터 간격입니다. 다음 ()안의 경우에 따라 왼쪽의 문자열을 넣습니다."
+          required: true
+          schema:
+            type: string
+            enum: [30m (30분), 1h (1시간), 1d (1일)]
+        - in: query
+          name: timezone
+          description: "로컬 타임존 (예: Asia/Seoul)"
+          required: true
+          schema:
+            type: string
+      responses:
+        200:
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Unit"
+        400:
+          description: "Bad Request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/StatusCode/BadRequestError"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+  /data/raw:
+    #####################################################
+    ### [GET] /data/raw :: Get raw data
+    #####################################################
+    get:
+      tags:
+        - Device Data
+      summary: "Get raw data"
+      description: >
+        디바이스의 원본데이터를 조회합니다. 최대 5개의 유닛에 대한 원본 데이터를 조회할 수 있습니다.
+      security:
+        - BearerAuth: []
+      parameters:
+        - in: query
+          name: serviceId
+          description: "서비스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: deviceId
+          description: "디바이스 아이디입니다."
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: unitNumbers
+          description: "유닛 번호입니다. 1,2,3,4,5,... 형식으로 일련의 스트링으로 구성하여 넣습니다."
+          required: true
+          schema:
+            type: string        
+        - in: query
+          name: startDate
+          description: "조회 시작 일시입니다. (YYYY-MM-DD hh:mm:ss 형식)"
+          required: true
+          schema:
+            type: string
+            format: date
+            pattern: 'YYYY-MM-DD hh:mm:ss'
+        - in: query
+          name: endDate
+          description: "조회 종료 일시입니다. (YYYY-MM-DD hh:mm:ss 형식)"
+          required: true
+          schema:
+            type: string
+            format: date
+            pattern: 'YYYY-MM-DD hh:mm:ss'
+        - in: query
+          name: offset
+          description: "결과 컬렉션 내의 시작 지점입니다."
+          required: true
+          schema:
+            type: integer
+            default: 0
+            minimum: 0
+        - in: query
+          name: limit
+          description: "응답에서 반환될 아이템 수입니다."
+          required: true
+          schema:
+            type: integer
+            default: 30
+            exclusiveMinimum: true
+            minimum: 0
+      responses:
+        200:
+          description: "Successful operation"
+          content:
+            application/json:
+              schema:
+                $ref: "#/Model/Unit"
+        400:
+          description: "Bad Request"
+          content:
+            application/json:
+              schema:
+                $ref: "#/StatusCode/BadRequestError"
+        401:
+          $ref: "#/StatusCode/401"
+        404:
+          $ref: "#/StatusCode/404"
+#####################
+### STATUS CODE
+#####################
+StatusCode:
+  Error:
+    type: object
+    properties:
+      error:
+        type: string
+        description: "Error message."
+        example: "An error occurred"
+  BadRequestError:
+    type: object
+    properties:
+      status:
+        type: int
+        description: "HTTP status code."
+        example: 400
+      error:
+        type: string
+        description: "Bad request Error message."
+        example: "Bad request."
+  201:
+    description: "created."
+    content:
+      application/json:
+        schema:
+          type: null
+          example:
+  204:
+    description: "Successful operation but No content returned."
+    content:
+      application/json:
+        schema:
+          type: null
+          example:
+  401:
+    description: Invalid or missing api token.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: int
+              description: "HTTP status code."
+              example: 401
+            message:
+              type: string
+              description: "Unauthorized Error message."
+              example: "Unauthorized request: no authentication given."
+  404:
+    description: The Link does not exist.
+    content:
+      application/json:
+        schema:
+          type: object
+          properties:
+            status:
+              type: int
+              description: "HTTP status code."
+              example: 404
+            error:
+              type: string
+              description: "Not found Error message."
+              example: "Not Found."
+#####################
+### PARAMETER
+#####################
+Parameter:
+  token:
+    default:
+      type: object
+      required:
+        - grant_type
+        - client_id
+        - client_secret
+        - username
+        - password
+        - refresh_token
+      properties:
+        grant_type:
+          $ref: '#/Properties/token/default_token/properties/grant_type'
+        client_id:
+          $ref: '#/Properties/token/default_token/properties/client_id'
+      discriminator:                                                # select one grant_type.
+        propertyName: grant_type
+        mapping:
+          client_credentials: '#/Parameter/grant_type/client_credentials'
+          password: '#/Parameter/grant_type/password'
+          refresh_token: '#/Parameter/grant_type/refresh_token'
+    service_user:
+      type: object
+      required:
+        - client_id
+        - username
+        - password
+        - refresh_token
+      properties:
+        grant_type:
+          $ref: '#/Properties/token/default_token/properties/grant_type'
+        client_id:
+          $ref: '#/Properties/token/default_token/properties/client_id'
+        pushkey:
+          description: 사용자가 앱으로 로그인한 경우 해당 디바이스의 푸시키입니다.
+          type: string
+        os:
+          description: 사용자가 앱으로 로그인한 경우 해당 디바이스의 os입니다. pushkey 항목이 있는 경우 os 항목이 반드시 있어야 합니다.
+      discriminator:                                                # select one grant_type.
+        propertyName: grant_type
+        mapping:
+          password: '#/Parameter/grant_type/password_for_service_user'
+          refresh_token: '#/Parameter/grant_type/refresh_token_for_service_user'
+  grant_type:
+    client_credentials:
+      description: A representation of a client_credentials
+      allOf:
+        - $ref: '#/Parameter/token/default'
+        - $ref: '#/Properties/token/client_credentials'
+    password:
+      description: A representation of a password
+      allOf:
+        - $ref: '#/Parameter/token/default'
+        - $ref: '#/Properties/token/password'
+    refresh_token:
+      description: A representation of a refresh_token
+      allOf:
+        - $ref: '#/Parameter/token/default'
+        - $ref: '#/Properties/token/refresh_token'
+    password_for_service_user:
+      description: A representation of a password
+      allOf:
+        - $ref: '#/Parameter/token/service_user'
+        - $ref: '#/Properties/token/password'
+    refresh_token_for_service_user:
+      description: A representation of a refresh_token
+      allOf:
+        - $ref: '#/Parameter/token/service_user'
+        - $ref: '#/Properties/token/refresh_token'
+  device_info:
+    type: object
+    required:
+      - linkId
+      - name
+      - cloudDeviceId
+    properties:
+      linkId:
+        type: string
+        description: "연결 아이디입니다."
+        example: "F5B64CF7C9BE433E86B83A870501DFC0"
+      name:
+        type: string
+        description: "디바이스 이름입니다."
+        example: "TEST DEVICE"
+      cloudDeviceId:
+        type: string
+        description: "클라우드 디바이스 아이디입니다."
+        example: "0E2F89AE7E3B482FA3C02DD5B7D5DBAC"
+  update_device_info:
+    type: object
+    properties:
+      name:
+        type: string
+        description: "디바이스 이름입니다."
+        example: "TEST DEVICE"
+      type:
+        type: string
+        description: |
+          디바이스 유형 코드입니다..
+
+          See [***Get device type***](#tag/Device/paths/~1iot~1devices~1type~1{deviceType}/get) API.
+        example: "0038"
+  cloud_device_info:
+    type: object
+    required:
+      - productName
+      - deviceType
+      - modelName
+      - manufacturer
+    properties:
+      productName:
+        type: string
+        description: "제품 명입니다."
+        example: "안방 등 70W"
+      deviceType:
+        type: string
+        description: "디바이스 유형입니다."
+        enum:
+          - 0006 (Non IoT device)
+          - 0007 (IoT device)
+        example: 0007
+      modelName:
+        type: string
+        description: "모델 명입니다."
+        example: "OBRIGHTXB-2"
+      manufacturer:
+        type: string
+        description: "제조사입니다."
+        example: "테스트기업"
+      description:
+        type: string
+        description: "디바이스 설명입니다."
+        example: "IoT용 전등입니다."
+      files:
+        type: string
+        description: "제품 이미지입니다."
+        format: binary
+  unit_info:
+    type: object
+    required:
+      - cloudDeviceId
+      - number
+      - name
+      - type
+      - commandType
+    properties:
+      cloudDeviceId:
+        type: string
+        description: 클라우드 디바이스 아이디입니다.
+        example: 4FD4A09C9653467C9566346A0B635DA6
+      number:
+        type: number
+        description: |
+
+          클라우드에서 유닛을 식별하는 번호를 입력합니다.
+
+          예를 들어 디바이스가 PLC일 경우 유닛 번호는 PLC의 메모리 번지수와 동일하게 입력합니다.
+
+          또한 누비슨 IoT Direct-Link SDK로 구성된 디바이스의 경우 디바이스에서 보내는 데이터 값 구간에서 이 유닛에 해당되는 데이터 인덱스를 입력합니다. 만약 해당 유닛의 데이터가 디바이스 데이터 중 첫 번째 데이터라면 유닛 번호는 0입니다.
+        example: 1
+      name:
+        type: string
+        description: 유닛 이름입니다.
+        example: 습도센서
+      type:
+        type: string
+        description: 유닛 종류입니다.
+        example: 습도센서
+      commandType:
+        type: string
+        description: 유닛 용도입니다.
+        enum: [1 (조회), 2 (제어), 3 (조회/제어 모두)]
+        example: 1
+      measure:
+        type: string
+        description: 유닛 데이터에 대한 단위입니다.
+        nullrable: true
+        example: ˚C
+      description:
+        type: string
+        description: 유닛에 대한 설명입니다.
+        example: 지온을 재는 온도센서입니다.
+  Timeline_info:
+    type: object
+    required:
+      - identifier
+      - category
+      - level
+      - action
+    properties:
+      identifier:
+        type: string
+        description: "디바이스 식별자입니다. 디바이스 식별자는 서비스 코드 + '_' + 연결 식별자 로 이루어진 문자열입니다."
+        example: JTAE1QH9_10000
+      category:
+        type: string
+        description: "타임라인 생성 주체 분류코드입니다. 디바이스의 경우 1의 값을, 시스템인 경우 2의 값을 문자로 넣습니다."
+        example: "1"
+      level:
+        type: string
+        description: "타임라인 레벨입니다. (1: information, 2: warn, 3: error) 값은 문자로 넣습니다."
+        example: "1"
+      action:
+        type: string
+        description: "행위 키워드입니다. 다음의 ()안의 경우에 따라 왼쪽의 문자열 값을 넣습니다."
+        enum:
+          - cloudIn (클라우드에 접속)
+          - cloudOut (클라우드 접속 해제)
+          - connectionError (연결 이상 감지)
+          - deviceError (디바이스 이상 감지)
+          - userControl (사용자에 의한 제어)
+          - ruleControl (IoT 룰에 의한 제어)
+          - serviceEvent (서비스에 의한 이벤트)
+        example: http://www.lsis.com/ko/upload/images/product/thumb/P01117_t.png
+      message:
+        type: string
+        description: |
+          행위와 관련하여 추가 저장할 데이터입니다. action이 cloudIn, cloudOut, connectionError인 경우 해당 항목을 추가하지 않습니다.
+
+          action이 deviceError인 경우 디바이스 명을 넣습니다.
+
+          action이 userControl인 경우 '디바이스 명,유닛 번호,제어 값,제어 요청 사용자 인터페이스명,사용자 아이디'로 이루어진 문자열을 넣습니다.
+
+          action이 ruleControl인 경우 '디바이스 명,유닛 번호,제어 값,제어 요청 룰 이름' 로 이루어진 문자열을 넣습니다.
+
+          action이 serviceEvent인 경우 해당 서비스에서 생성한 문자열을 넣습니다.
+        example: "아두이노,5,ON,NUBISON 클라우드 웹,test@simplatform.com"
+#####################
+### RESPONSE
+#####################
+Response:
+  Service:
+    description: "Successful operation."
+    headers:
+      pagination-count:
+        description: Number of responses.
+        schema:
+          type: integer
+      pagination-page:
+        description: Current page number.
+        schema:
+          type: integer
+      pagination-limit:
+        description: Limited number of results.
+        schema:
+          type: integer
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/Service"
+  ServiceUsers:
+    description: "Successful operation."
+    headers:
+      pagination-count:
+        description: Number of responses.
+        schema:
+          type: integer
+      pagination-page:
+        description: Current page number.
+        schema:
+          type: integer
+      pagination-limit:
+        description: Limited number of results.
+        schema:
+          type: integer
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/ServiceUser"
+  Link:
+    description: "Successful operation."
+    headers:
+      pagination-count:
+        description: Number of responses.
+        schema:
+          type: integer
+      pagination-page:
+        description: Current page number.
+        schema:
+          type: integer
+      pagination-limit:
+        description: Limited number of results.
+        schema:
+          type: integer
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/Link"
+  Device:
+    description: "Successful operation."
+    headers:
+      pagination-count:
+        description: Number of responses.
+        schema:
+          type: integer
+      pagination-page:
+        description: Current page number.
+        schema:
+          type: integer
+      pagination-limit:
+        description: Limited number of results.
+        schema:
+          type: integer
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/Device"
+  Unit:
+    description: "Successful operation."
+    headers:
+      pagination-count:
+        description: Number of responses.
+        schema:
+          type: integer
+      pagination-page:
+        description: Current page number.
+        schema:
+          type: integer
+      pagination-limit:
+        description: Limited number of results.
+        schema:
+          type: integer
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/Unit"
+  CloudDevice:
+    description: "Successful operation."
+    headers:
+      pagination-count:
+        description: Number of responses.
+        schema:
+          type: integer
+      pagination-page:
+        description: Current page number.
+        schema:
+          type: integer
+      pagination-limit:
+        description: Limited number of results.
+        schema:
+          type: integer
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/CloudDevice"
+  Timeline:
+    description: "Successful operation."
+    headers:
+      pagination-count:
+        description: Number of responses.
+        schema:
+          type: integer
+      pagination-page:
+        description: Current page number.
+        schema:
+          type: integer
+      pagination-limit:
+        description: Limited number of results.
+        schema:
+          type: integer
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/Timeline"
+  UserDevices:
+    description: "Successful operation."
+    headers:
+      pagination-count:
+        description: Number of responses.
+        schema:
+          type: integer
+      pagination-page:
+        description: Current page number.
+        schema:
+          type: integer
+      pagination-limit:
+        description: Limited number of results.
+        schema:
+          type: integer
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/UserDevice"
+  Statistics:
+    description: "Successful operation."
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/Statistics"
+  ServiceUserCount:
+    description: "Successful operation."
+    content:
+      application/json:
+        schema:
+          type: array
+          items:
+            $ref: "#/Model/ServiceUserCount"
+#####################
+### MODEL
+#####################
+Model:
+  Client:
+    type: object
+    required:
+      - id
+      - grants
+    properties:
+      id:
+        type: string
+        description: NUBISON IoT 클라우드 웹에서 애플리케이션을 등록하여 받은 클라이언트 아이디입니다.
+        example: 219964016070455DA97F
+      redirectUris:
+        type: string
+        description: 인증 완료 후 리다이렉트될 경로입니다. 만약 리다이렉트하지 않는다면 빈 값일 수 있습니다.
+        example: ""
+      grants:
+        type: array
+        description: 클라이언트가 요청할 수 있는 권한 부여 방식입니다.
+        items:
+          type: string
+        example:
+          - password
+          - refresh_token
+  User:
+    type: object
+    required:
+      - id
+      - name
+    properties:
+      id:
+        type: string
+        description: 사용자 아이디입니다.
+        example: test@simplatform.com
+      name:
+        type: string
+        description: 사용자 이름입니다.
+        example: 누비슨테스터
+      img:
+        type: string
+        description: 사용자 프로필 이미지 경로입니다.
+        example: /upload/sse9898fdsffdsf.jpg
+  Token:
+    type: object
+    required:
+      - accessToken
+      - accessTokenExpiresAt
+      - refreshToken
+      - refreshTokenExpiresAt
+      - client
+      - user
+    properties:
+      accessToken:
+        type: string
+        description: API 호출 시 사용하는 access token입니다.
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VyaWQiOiJ0ZXN0QHNpbXBsYXRmb3JtLmNvbSIsInNjb3BlIjoiMDAwMSIsImlhdCI6MTUzODAyOTY4MiwiZXhwIjoxNTQ4ODI5NjgyfQ.wcik-OrFoI95RXxSGMYaeBq_osybmvYAbZ_7dXTsAY8
+      accessTokenExpiresAt:
+        type: string
+        format: DateTime
+        description: access token 만료시간입니다. 발급 시간으로부터 3시간 동안 유효합니다.
+        example: 2018-09-27T07:31:14.901Z
+      refreshToken:
+        type: string
+        description: access token을 다시 획득하는데 사용되는 refresh token입니다.
+        example: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJVU0VSX0lEIjoidGVzdEBzaW1wbGF0Zm9ybS5jb20iLCJpYXQiOjE1MzgwMzA5NzAsImV4cCI6MTU0NTgwNjk3MH0.wLjscM8FMAQfdj1CcFg15oILt3ubcnePn6tkgmbrTpo
+      refreshTokenExpiresAt:
+        type: string
+        format: DateTime
+        description: refresh token 만료시간입니다. 발급 시간으로부터 90일 동안 유효합니다.
+        example: 2018-12-26T04:31:14.901Z
+      client:
+        $ref: "#/Model/Client"
+      user:
+        $ref: "#/Model/User"
+  Service:
+    type: object
+    required:
+      - id
+      - name
+      - summary
+      - additioalFunctions
+      - createdAt
+    properties:
+      id:
+        type: string
+        description: 서비스 아이디입니다.
+        example: 1C49B02A6F7E40D596B79B276837F6EE
+      name:
+        type: string
+        description: 서비스 이름입니다.
+        example: 테스트서비스
+      summary:
+        type: string
+        description: 서비스 개요입니다.
+        example: 테스트용으로 만든 서비스입니다.
+      additioalFunctions:
+        type: string
+        description: 0과 1로 표현되는 서비스 추가 기능에 대한 스트링입니다.
+        example: 001, 010
+      imagePath:
+        type: string
+        description: 서비스 이미지 파일 src입니다.
+        example: /upload/0800200c9a34de2.jpg
+      createdAt:
+        type: string
+        description: 서비스가 생성된 시간입니다.
+        example: 2018-09-04T15:43:29Z
+  ServiceUser:
+    type: object
+    required:
+      - serviceId
+      - userId
+      - parentId
+      - name
+      - role
+      - status
+      - createdAt
+      - closedAt
+    properties:
+      serviceId:
+        type: string
+        description: 서비스 아이디입니다.
+        example: 1C49B02A6F7E40D596B79B276837F6EE
+      userId:
+        type: string
+        description: 사용자 아이디입니다.
+        example: homeiot
+      parentId:
+        type: string
+        description: |
+          사용자의 상위 사용자 아이디입니다.
+
+          서비스 서버에서 특별히 지정하지 않았다면 기본 값으로 사용자 아이디가 반환됩니다.
+        example: zdsoidfs
+      name:
+        type: string
+        description: 사용자 이름입니다.
+        example: 홍길동
+      role:
+        type: string
+        description: 사용자 역할 입니다. 각 서비스에서 지정한 코드 값(0~9)이 반환됩니다. 서비스 서버에서 특별히 지정하지 않았다면 기본 값으로 0이 반환됩니다.
+        example: 0
+      status:
+        type: string
+        description: 가입 상태입니다. 1인 경우 가입, 4인 경우 탈퇴입니다.
+        example: 1
+      tel:
+        type: string
+        description: 전화번호입니다.
+        example: 02-352-4300
+      mobilePhone:
+        type: string
+        description: 핸드폰 번호입니다.
+        example: 010-9231-2311
+      address:
+        type: string
+        description: 주소입니다.
+        example: 서울시 금천구 가산디지털1로 226
+      addressDesc:
+        type: string
+        description: 상세주소입니다.
+        example: 에이스하이엔드타워 5차 2003호
+      email:
+        type: string
+        description: 이메일 주소입니다.
+        example: iot@simplatform.com
+      birthday:
+        type: string
+        description: 생년월일입니다.
+        example: "2000-01-23"
+      gender:
+        type: string
+        description: |
+          성별입니다.
+
+          * `1` : 남성
+          * `2` : 여성
+          * `9` : 알리고 싶지 않음
+        enum:
+          - 1
+          - 2
+          - 9
+        example: 1
+      maritalStatus:
+        type: string
+        description: |
+          결혼 여부입니다.
+
+          * `1` : 기혼
+          * `2` : 미혼
+        enum:
+          - 1
+          - 2
+        example: 1
+      createdAt:
+        type: string
+        format: date
+        description: 사용자가 가입한 시간입니다.
+        example: "2018-09-04T15:43:29Z"
+      closedAt:
+        type: string
+        format: date
+        description: 사용자가 탈퇴한 시간입니다.
+        example: "2019-01-04T15:43:29Z"
+  Link:
+    type: object
+    required:
+      - id
+      - name
+      - type
+      - protocol
+      - identificationPolicy
+      - identifier
+      - createdAt
+    properties:
+      id:
+        type: string
+        description: 연결 아이디입니다.
+        required: true
+        example: 493C67426663488FAE607D33A299ADCD
+      name:
+        type: string
+        description: 연결 이름입니다.
+        required: true
+        example: T_GL
+      type:
+        type: string
+        description: 연결 타입입니다.
+        required: true
+        enum:
+          - 0006 (GatewayLink)
+          - 0007 (다이렉트 링크)
+        example: 0007
+      protocol:
+        type: string
+        description: 통신 프로토콜입니다.
+        required: true
+        enum:
+          - MQTTS
+          - MQTT
+          - UDP
+          - TCP/IP
+          - HTTPS
+          - HTTP
+          - SmartThings
+        example: MQTTS
+      identificationPolicy:
+        type: string
+        description: 식별 정책입니다.
+        required: true
+        enum:
+          - 1 (mac address)
+          - 2 (device id)
+          - 3 (서버에서 키 발급)
+      identifier:
+        type: string
+        description: 연결에 대한 식별자입니다.
+        required: true
+      syncStatus:
+        type: string
+        description: 연결에 대한 정보가 디바이스 혹은 기타 다른 연계 서버와 동기화되었는지에 대한 여부입니다.
+        required: true
+        enum:
+          - 1 (동기화됨)
+          - 0 (동기화안됨)
+      createAt:
+        type: string
+        description: 연결이 생성된 시간입니다.
+        required: true
+        example: 2018-09-04T15:43:29Z
+  Device:
+    type: object
+    required:
+      - id
+      - name
+      - cloudDeviceId
+    properties:
+      id:
+        type: string
+        description: 디바이스 아이디입니다.
+        example: 1F047C057563474EB5EE8C7B4A02F947
+      name:
+        type: string
+        description: 디바이스 이름입니다.
+        example: Lighting switch
+      cloudDeviceId:
+        type: string
+        description: 디바이스 템플릿인 클라우드 디바이스 아이디입니다.
+        example: 493C67426663488FAE607D33A299ADCD
+      identifier:
+        type: string
+        description: 디바이스 식별자입니다. GatewayLink인 경우 디바이스를 식별하기 위한 값으로 디바이스 하드웨어적 특성에 따라 값을 넣습니다.
+        example: USB0
+      createdAt:
+        type: string
+        format: date
+        description: 디바이스가 생성된 시간입니다.
+        example: 2018-09-04T15:43:29Z
+  Unit:
+    type: object
+    required:
+      - cloudDeviceId
+      - number
+      - name
+      - type
+      - commandType
+    properties:
+      cloudDeviceId:
+        type: string
+        description: 클라우드 디바이스 아이디입니다.
+        example: 4FD4A09C9653467C9566346A0B635DA6
+      number:
+        type: number
+        description: 유닛 번호입니다.
+        example: 1
+      name:
+        type: string
+        description: 유닛 이름입니다.
+        example: 습도센서
+      type:
+        type: string
+        description: 유닛 종류입니다.
+        example: 습도센서
+      commandType:
+        type: string
+        description: 유닛 용도입니다.
+        enum: [1 (조회), 2 (제어), 3 (조회/제어 모두)]
+        example: 1
+      measure:
+        type: string
+        description: 유닛 데이터에 대한 단위입니다.
+        nullrable: true
+        example: ˚C
+      description:
+        type: string
+        description: 유닛에 대한 설명입니다.
+        example: 지온을 재는 온도센서입니다.
+      createdAt:
+        type: string
+        description: 유닛이 생성된 시간입니다.
+        example: 2018-09-04T15:43:29Z
+  CloudDevice:
+    type: object
+    required:
+      - id
+      - productName
+      - deviceType
+      - productImage
+      - mimeType
+    properties:
+      id:
+        type: string
+        description: 클라우드 디바이스 아이디입니다.
+        example: F67867693F0911E9A5BE42010A920002
+      cloudPublic:
+        type: string
+        description: 클라우드 디바이스의 배포상태입니다.
+        enum:
+          - 0 (미배포)
+          - 1 (배포)
+        example: 1
+      productName:
+        type: string
+        description: 디바이스 이름입니다.
+        example: 테스트_클라우드_디바이스
+      manufacturer:
+        type: string
+        description: 제조사 이름입니다.
+        example: 테스트_모델
+      deviceType:
+        type: string
+        description: 디바이스 유형입니다.
+        enum:
+          - 0006 (Non IoT device)
+          - 0007 (IoT device)
+        example: 0007
+      productImage:
+        type: string
+        description: 제품의 이미지를 baset64 한 값입니다.
+        example: null
+      protocol:
+        type: string
+        description: 하드웨어 통신 유형입니다.
+        example: null
+      identifier:
+        type: string
+        description: 디바이스 식별자입니다. GatewayLink인 경우 디바이스를 식별하기 위한 값으로 디바이스 하드웨어적 특성에 따라 값을 넣습니다.
+        example: null
+      createdAt:
+        type: string
+        format: date
+        description: 클라우드 디바이스가 생성된 시간입니다.
+        example: 2018-09-04T15:43:29Z
+  Timeline:
+    type: object
+    required:
+      - no
+      - identifier
+      - category
+      - action
+    properties:
+      no:
+        type: integer
+        description: 일련번호입니다.
+        example: 100
+      identifier:
+        type: string
+        description: "디바이스 식별자입니다. 디바이스 식별자는 서비스 코드 + '_' + 연결 식별자 로 이루어진 문자열입니다."
+        required: true
+        example: JTAE1QH9_10000
+      category:
+        type: string
+        description: "타임라인 생성 주체 분류코드입니다. 디바이스의 경우 1의 값을, 시스템인 경우 2의 값을 문자로 넣습니다."
+        required: true
+        example: XBC-DR32H
+      action:
+        type: string
+        description: "행위 키워드입니다. 다음의 ()안의 경우에 따라 왼쪽의 문자열 값을 넣습니다."
+        enum:
+          - cloudIn (클라우드에 접속)
+          - cloudOut (클라우드 접속 해제)
+          - connectionError (연결 이상 감지)
+          - deviceError (디바이스 이상 감지)
+          - userControl (사용자에 의한 제어)
+          - ruleControl (IoT 룰에 의한 제어)
+        example: http://www.lsis.com/ko/upload/images/product/thumb/P01117_t.png
+      message:
+        type: string
+        description: |
+          행위와 관련하여 추가 저장할 데이터입니다. action이 cloudIn, cloudOut, connectionError인 경우 해당 항목을 추가하지 않습니다.
+
+          action이 deviceError인 경우 디바이스 명을 넣습니다.
+
+          action이 userControl인 경우 '디바이스 명,유닛 번호,제어 값,제어 요청 사용자 인터페이스명,사용자 아이디'로 이루어진 문자열을 넣습니다.
+
+          action이 ruleControl인 경우 '디바이스 명,유닛 번호,제어 값,제어 요청 룰 이름' 로 이루어진 문자열을 넣습니다.
+        example: "아두이노,5,ON,NUBISON 클라우드 웹,test@simplatform.com"
+  UserDevice:
+    type: object
+    required:
+      - modelName
+      - linkName
+      - identifier
+      - deviceName
+      - userId
+      - userName
+      - createdAt
+    properties:
+      modelName:
+        type: string
+        description: 모델 이름입니다.
+        example: PDD-064CTR
+      linkName:
+        type: string
+        description: 연결 이름입니다.
+        example: apiDirectLink
+      identifier:
+        type: string
+        description: 연결 식별자입니다.
+        example: 013b90e3-938a-4e88-9ab0-40c4adcb15dd
+      deviceName:
+        type: string
+        description: 디바이스 이름입니다.
+        example: api다이렉트링크디바이스
+      userId:
+        type: string
+        description: 사용자 아이디입니다.
+        example: homeiot
+      userName:
+        type: string
+        description: 사용자 이름입니다.
+        example: 홍길동
+      createdAt:
+        type: string
+        format: date
+        description: 기기를 생성한 시간입니다.
+        example: "2018-09-04T15:43:29Z"
+  Statistics:
+    type: object
+    required:
+      - cnt
+      - date
+    properties:
+      cnt:
+        type: number
+        description: 합계 수 입니다.
+        example: 1
+      date:
+        type: string
+        format: date
+        description: 통계 기준 날짜 혹은 시간입니다.
+        example: "2018-09-04T15:43:29Z"
+  ServiceUserCount:
+    type: object
+    required:
+      - total
+      - new
+      - withdrawal
+    properties:
+      total:
+        type: number
+        description: 모든 사용자 수입니다.
+        example: 100
+      new:
+        type: number
+        description: 오늘 새로 가입한 사용자 수입니다.
+        example: 10
+      withdrawal:
+        type: number
+        description: 오늘 탈퇴한 사용자 수입니다.
+        example: 1
+#####################
+### ERROR CODE
+#####################
+ErrorCode:
+  AUTH401:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH401"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "No authentication given."
+  AUTH402:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH402"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "grant_type is missing."
+  AUTH403:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH403"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "The grant_type is not acceptable."
+  AUTH404:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH404"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "client_id is missing."
+  AUTH405:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH405"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "client_secret is missing."
+  AUTH406:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH406"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "username is missing."
+  AUTH407:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH407"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "password is missing."
+  AUTH408:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH408"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "refresh_token is missing."
+  AUTH101:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH101"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "No matched user exist."
+  AUTH102:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "AUTH102"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "This is a closed account."
+  SERVICES401:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "SERVICES401"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "offset is missing."
+  SERVICES402:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "SERVICES402"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "limit is missing."
+  SERVICES403:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "SERVICES403"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "offset must be greater than or equal to zero."
+  SERVICES404:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "SERVICES404"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "limit must be greater than zero."
+  LINKS401:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS401"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "service id is missing."
+  LINKS402:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS402"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "offset is missing."
+  LINKS403:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS403"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "limit is missing."
+  LINKS404:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS404"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "link id is missing."
+  LINKS405:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS405"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "name is missing."
+  LINKS406:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS406"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "type is missing."
+  LINKS407:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS407"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "identification policy is missing."
+  LINKS408:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS408"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "identifier is missing."
+  LINKS409:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS409"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "link name is missing."
+  LINKS410:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS410"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "device name is missing."
+  LINKS411:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS411"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "cloud device id is missing."
+  LINKS412:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS412"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "service code is missing."
+  LINKS413:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "LINKS413"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "protocol is missing."
+  DEVICES401:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES401"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "link id is missing."
+  DEVICES402:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES402"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "offset is missing."
+  DEVICES403:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES403"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "limit is missing."
+  DEVICES404:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES404"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "name is missing."
+  DEVICES405:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES405"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "cloud device id is missing."
+  DEVICES406:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES406"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "control type is missing."
+  DEVICES407:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES407"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "user interface is missing."
+  DEVICES408:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES408"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "unit number is missing."
+  DEVICES409:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "DEVICES409"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "control value is missing."
+  CLOUDUNITS401:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS401"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "offset is missing."
+  CLOUDUNITS402:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS402"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "limit is missing."
+  CLOUDUNITS403:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS403"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "searchText is missing."
+  CLOUDUNITS404:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS404"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "orderBy is missing."
+  CLOUDUNITS405:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS405"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "units is missing."
+  CLOUDUNITS406:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS406"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "units type is not array."
+  CLOUDUNITS407:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS407"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "unit name is missing."
+  CLOUDUNITS408:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS408"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "unit number is missing."
+  CLOUDUNITS409:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS409"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "unit commandType is missing."
+  CLOUDUNITS410:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS410"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "unitNumbers is missing."
+  CLOUDUNITS411:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDUNITS411"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "unitNumbers is not array."
+  CLOUDDEVICES401:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES401"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "includePublic is missing."
+  CLOUDDEVICES402:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES402"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "offset is missing."
+  CLOUDDEVICES403:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES403"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "limit is missing."
+  CLOUDDEVICES404:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES404"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "manufacturer is missing."
+  CLOUDDEVICES405:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES405"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "serarhText is missing."
+  CLOUDDEVICES406:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES406"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "productName is missing."
+  CLOUDDEVICES407:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES407"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "deviceType is missing."
+  CLOUDDEVICES408:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES408"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "modelName is missing."
+  CLOUDDEVICES409:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "CLOUDDEVICES409"
+      message:
+        type: string
+        description: "Bad request Error message."
+        example: "deletedAttachments is missing."
+  TIMELINE401:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE401"
+      message:
+        type: string
+        description: "Bad request Error message. identifier is missing."
+        example: "identifier is missing."
+  TIMELINE402:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE402"
+      message:
+        type: string
+        description: "Bad request Error message. offset is missing."
+        example: "offset is missing."
+  TIMELINE403:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE403"
+      message:
+        type: string
+        description: "Bad request Error message. limit is missing."
+        example: "limit is missing."
+  TIMELINE404:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE404"
+      message:
+        type: string
+        description: "Bad request Error message. action is missing."
+        example: "action is missing."
+  TIMELINE405:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE405"
+      message:
+        type: string
+        description: "Bad request Error message. period is missing."
+        example: "period is missing."
+  TIMELINE406:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE406"
+      message:
+        type: string
+        description: "Bad request Error message. start date is missing."
+        example: "start date is missing."
+  TIMELINE407:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE407"
+      message:
+        type: string
+        description: "Bad request Error message. end date is missing."
+        example: "end date is missing."
+  TIMELINE408:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE408"
+      message:
+        type: string
+        description: "Bad request Error message. category is missing."
+        example: "category is missing."
+  TIMELINE409:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "Bad request code."
+        example: "TIMELINE409"
+      message:
+        type: string
+        description: "Bad request Error message. level is missing."
+        example: "level is missing."
+  SERVICEUSER101:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER101*이 반환됩니다."
+        example: "SERVICEUSER101"
+      message:
+        type: string
+        description: "해당하는 사용자가 없을 경우에 반환됩니다."
+        example: "No matched user."
+  SERVICEUSER401:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER401*이 반환됩니다."
+        example: "SERVICEUSER401"
+      message:
+        type: string
+        description: "userId 파라미터가 없을 경우에 반환됩니다."
+        example: "User ID is missing."
+  SERVICEUSER402:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER402*이 반환됩니다."
+        example: "SERVICEUSER402"
+      message:
+        type: string
+        description: "password 파라미터가 없을 경우에 반환됩니다."
+        example: "Password is missing."
+  SERVICEUSER403:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER403*이 반환됩니다."
+        example: "SERVICEUSER403"
+      message:
+        type: string
+        description: "name 파라미터가 없을 경우에 반환됩니다."
+        example: "Name is missing."
+  SERVICEUSER404:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER404*이 반환됩니다."
+        example: "SERVICEUSER404"
+      message:
+        type: string
+        description: "phone 파라미터가 없을 경우에 반환됩니다."
+        example: "Phone is missing."
+  SERVICEUSER405:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER405*이 반환됩니다."
+        example: "SERVICEUSER405"
+      message:
+        type: string
+        description: "email 파라미터가 없을 경우에 반환됩니다."
+        example: "Email is missing."
+  SERVICEUSER406:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER406*이 반환됩니다."
+        example: "SERVICEUSER406"
+      message:
+        type: string
+        description: "mobilePhone 파라미터가 없을 경우에 반환됩니다."
+        example: "Mobile phone is missing."
+  SERVICEUSER407:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER407*이 반환됩니다."
+        example: "SERVICEUSER407"
+      message:
+        type: string
+        description: "비밀번호가 틀렸을 경우에 반환됩니다."
+        example: "Wrong password."
+  SERVICEUSER408:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER408*이 반환됩니다."
+        example: "SERVICEUSER408"
+      message:
+        type: string
+        description: "type 파라미터가 없을 경우에 반환됩니다."
+        example: "type is missing."
+  SERVICEUSER409:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER409*이 반환됩니다."
+        example: "SERVICEUSER409"
+      message:
+        type: string
+        description: "잘못된 타입이 전송되었을 경우에 반환됩니다."
+        example: "wrong type."
+  SERVICEUSER410:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER410*이 반환됩니다."
+        example: "SERVICEUSER410"
+      message:
+        type: string
+        description: "searchText 파라미터가 없을 경우에 반환됩니다."
+        example: "searchText is missing."
+  SERVICEUSER411:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER411*이 반환됩니다."
+        example: "SERVICEUSER411"
+      message:
+        type: string
+        description: "orderBy 파라미터가 없을 경우에 반환됩니다."
+        example: "orderBy is missing."
+  SERVICEUSER412:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER412*이 반환됩니다."
+        example: "SERVICEUSER412"
+      message:
+        type: string
+        description: "offset 파라미터가 없을 경우에 반환됩니다."
+        example: "offset is missing."
+  SERVICEUSER413:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER413*이 반환됩니다."
+        example: "SERVICEUSER413"
+      message:
+        type: string
+        description: "limit 파라미터가 없을 경우에 반환됩니다."
+        example: "limit is missing."
+  SERVICEUSER414:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER414*이 반환됩니다."
+        example: "SERVICEUSER414"
+      message:
+        type: string
+        description: "userIds 파라미터가 없을 경우에 반환됩니다."
+        example: "user IDs are missing."
+  SERVICEUSER415:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER415*이 반환됩니다."
+        example: "SERVICEUSER415"
+      message:
+        type: string
+        description: "startDate 파라미터가 없을 경우에 반환됩니다."
+        example: "startDate is missing."
+  SERVICEUSER416:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER416*이 반환됩니다."
+        example: "SERVICEUSER416"
+      message:
+        type: string
+        description: "startDate가 `YYYY-MM-DD` 형식이 아닐 때 반환됩니다."
+        example: "startDate must be in the format [YYYY-MM-DD]."
+  SERVICEUSER417:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER417*이 반환됩니다."
+        example: "SERVICEUSER417"
+      message:
+        type: string
+        description: "endDate 파라미터가 없을 경우에 반환됩니다."
+        example: "endDate is missing."
+  SERVICEUSER418:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER418*이 반환됩니다."
+        example: "SERVICEUSER418"
+      message:
+        type: string
+        description: "endDate가 `YYYY-MM-DD` 형식이 아닐 때 반환됩니다."
+        example: "endDate must be in the format [YYYY-MM-DD]."
+  SERVICEUSER419:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER419*이 반환됩니다."
+        example: "SERVICEUSER419"
+      message:
+        type: string
+        description: "interval 파라미터가 없을 경우에 반환됩니다."
+        example: "interval is missing."
+  SERVICEUSER420:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER420*이 반환됩니다."
+        example: "SERVICEUSER420"
+      message:
+        type: string
+        description: "잘못된 간격이 전송되었을 경우에 반환됩니다."
+        example: "wrong interval."
+  SERVICEUSER421:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER421*이 반환됩니다."
+        example: "SERVICEUSER421"
+      message:
+        type: string
+        description: "status 파라미터가 없을 경우에 반환됩니다."
+        example: "status is missing."
+  SERVICEUSER422:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER422*이 반환됩니다."
+        example: "SERVICEUSER422"
+      message:
+        type: string
+        description: "os 파라미터가 없을 경우에 반환됩니다."
+        example: "os is missing."
+  SERVICEUSER423:
+    type: object
+    properties:
+      code:
+        type: string
+        description: "에러코드 *SERVICEUSER423*이 반환됩니다."
+        example: "SERVICEUSER423"
+      message:
+        type: string
+        description: "cloudDeviceId 파라미터가 없을 경우에 반환됩니다."
+        example: "cloudDeviceId is missing."
+#####################
+### PROPERTIES
+#####################
+Properties:
+  token:
+    default_token:
+      type: object
+      properties:
+        grant_type:
+          type: string
+          description: grant type
+          enum:
+            - client credentials
+            - password
+            - refresh_token
+          default: password
+        client_id:
+          description: The client id. This value must be assigned by nubison service provider
+          type: string
+          example: RESTAPITestClient
+    client_credentials:
+      type: object
+      properties:
+        client_secret:
+          description: The client secret. This value must also be assigned by nubison service provider.
+          type: string
+          format: password
+          example: FB1B86006CABE1EBAB00F3DA7F4809A2B6A11E3A360C84B87DE3D4C868767E77
+    password:
+      type: object
+      properties:
+        username:
+          description: The user's email. If grant_type is password, this value is required.
+          type: string
+          format: email
+          example: test@simplatform.com
+        password:
+          description: The user's password. If grant_type is password, this value is required.
+          type: string
+          format: password
+          example: 03AC674216F3E15C761EE1A5E255F067953623C8B388B4459E13F978D7C846F4
+    refresh_token:
+      type: object
+      properties:
+        refresh_token:
+          description: The refresh token. If grant_type is refresh_token, this value is required.
+          type: string
