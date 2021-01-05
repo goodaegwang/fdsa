@@ -12,7 +12,7 @@
   "dependencies": {
     "@sentry/node": "^5.10.2",
     "async-mqtt": "^2.2.0",
-    "axios": "^0.19.0",
+    "axios": "^0.21.1",
     "cli-table": "^0.3.1",
     "config": "^3.0.1",
     "cors": "^2.8.5",
